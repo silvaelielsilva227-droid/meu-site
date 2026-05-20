@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestão Orçamentária - Assistência Social</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+    body { background: #f0f2f5; padding: 30px; color: #333; }
+    .container { max-width: 1200px; margin: auto; }
+    
+    header { background: #1e293b; color: white; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+    header h1 { font-size: 22px; }
+    
+    .btn-imprimir { background: #6366f1; color: white; border: none; padding: 10px 18px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s; display: flex; align-items: center; gap: 8px; }
+    .btn-imprimir:hover { background: #4f46e5; }
+
+    .barra-filtros { background: #cbd5e1; padding: 15px; border-radius: 12px; margin-bottom: 25px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+    .barra-filtros label { font-weight: bold; color: #1e293b; font-size: 14px; }
+    .barra-filtros select { padding: 8px 12px; border-radius: 6px; border: 1px solid #94a3b8; font-size: 14px; outline: none; background: white; font-weight: bold; }
+
+    .resumos { display: flex; gap: 20px; margin-bottom: 25px; flex-wrap: wrap; }
+    .card { background: white; padding: 20px; flex: 1; min-width: 220px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-left: 5px solid #1e293b; }
+    .card.total { border-left-color: #22c55e; }
+    .card p { font-size: 13px; color: #64748b; font-weight: bold; text-transform: uppercase; }
+    .card h3 { font-size: 24px; margin-top: 5px; color: #0f172a; }
+
+    form { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; display: flex; gap: 15px; flex-wrap: wrap; }
+    .form-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 5px; }
+    label { font-size: 14px; font-weight: bold; color: #475569; }
+    input, select { padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 15px; outline: none; }
+    input:focus, select:focus { border-color: #1e293b; }
+    
+    form button { background: #22c55e; color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: bold; align-self: flex-end; transition: 0.2s; }
+    form button:hover { background: #16a34a; }
+    
+    .tabela-container { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 14px 18px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
+    th { background: #f8fafc; color: #64748b; font-weight: bold; }
+    tr:hover { background: #f8fafc; }
+    
+    .btn-pdf { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-right: 5px; font-weight: bold; text-decoration: none; display: inline-block; font-size: 13px; }
+    .btn-pdf:hover { background: #059669; }
+    .btn-sem-pdf { background: #94a3b8; color: white; padding: 6px 12px; border-radius: 6px; display: inline-block; font-size: 13px; font-weight: bold; }
+    .btn-editar { background: #3b82f6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; margin-right: 5px; font-weight: bold; }
+    .btn-editar:hover { background: #2563eb; }
+    .btn-excluir { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    .btn-excluir:hover { background: #dc2626; }
+
+    /* 🖨️ CONFIGURAÇÃO EXCLUSIVA PARA IMPRESSÃO (ESTILO RELATÓRIO) */
+    @media print {
+      body { background: white; padding: 0; color: black; }
+      header { background: #f1f5f9; color: black; border: 1px solid #cbd5e1; padding: 15px; }
+      .btn-imprimir, .barra-filtros, form, .btn-editar, .btn-excluir, th:nth-child(6), td:nth-child(6) { 
+        display: none !important; /* Esconde botões, formulário, filtros e a coluna de anexo na folha */
+      }
+      .card { box-shadow: none; border: 1px solid #cbd5e1; background: white; }
+      .tabela-container { box-shadow: none; border: 1px solid #cbd5e1; }
+      th { background: #f1f5f9; color: black; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div>
+        <h1>Controle de Empenhos e NFs - Assistência Social</h1>
+        <span id="txt-competencia-atual">Filtro Ativo</span>
+      </div>
+      <button class="btn-imprimir" id="btn-imprimir">🖨️ Imprimir Relatório</button>
+    </header>
+
+    <div class="barra-filtros">
+      <div>
+        <label for="filtro-mes">Mês:</label>
+        <select id="filtro-mes">
+          <option value="01">Janeiro</option>
+          <option value="02">Fevereiro</option>
+          <option value="03">Março</option>
+          <option value="04">Abril</option>
+          <option value="05">Maio</option>
+          <option value="06">Junho</option>
+          <option value="07">Julho</option>
+          <option value="08">Agosto</option>
+          <option value="09">Setembro</option>
+          <option value="10">Outubro</option>
+          <option value="11">Novembro</option>
+          <option value="12">Dezembro</option>
+        </select>
+      </div>
+
+      <div>
+        <label for="filtro-ano">Ano:</label>
+        <select id="filtro-ano">
+          <option value="2025">2025</option>
+          <option value="2026" selected>2026</option>
+          <option value="2027">2027</option>
+          <option value="2028">2028</option>
+          <option value="2029">2029</option>
+          <option value="2030">2030</option>
+
+        </select>
+      </div>
+
+      <div>
+        <label for="filtro-conta">Conta / Recurso:</label>
+        <select id="filtro-conta">
+          <option value="Conta 34355-2 - CONTRA PARTIDA (RECURSO PRÓPRIO)">Conta 34355-2 - CONTRA PARTIDA (RECURSO PRÓPRIO)</option>
+          <option value="Conta 30739-4 - PROCARD-SUAS (PROCARD-SUAS)">Conta 30739-4 - PROCARD-SUAS (PROCARD-SUAS)</option>
+          <option value="Conta 23616-0 - PSB (PROTEÇÃO SOCIAL BÁSICA)">Conta 23616-0 - PSB (PROTEÇÃO SOCIAL BÁSICA)</option>
+          <option value="Conta 23611-X - GSUAS">Conta 23611-X - GSUAS</option>
+          <option value="Conta 29570-1 - IGD-PAB">Conta 29570-1 - IGD-PAB</option>
+          <option value="Conta 27158-6 - FUNDO M AUX FINANCEIRO">Conta 27158-6 - FUNDO M AUX FINANCEIRO</option>
+          <option value="Conta 26835-6 - COVIDEPI">Conta 26835-6 - COVIDEPI</option>
+          <option value="Conta 24442-2 - CRIANÇA FELIZ">Conta 24442-2 - CRIANÇA FELIZ</option>
+          <option value="Conta 23610-1 - GBF BOLSA FAMÍLIA">Conta 23610-1 - GBF BOLSA FAMÍLIA</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="resumos">
+      <div class="card">
+        <p>Notas na Conta Selecionada</p>
+        <h3 id="qtd-registros">0</h3>
+      </div>
+      <div class="card total">
+        <p>Total Gasto no Mês</p>
+        <h3 id="valor-acumulado">R$ 0,00</h3>
+      </div>
+    </div>
+    
+    <form id="form-gestao">
+      <input type="hidden" id="index-edicao" value="">
+
+      <div class="form-group">
+        <label for="empenho">Nº Empenho</label>
+        <input type="text" id="empenho" placeholder="Ex: empenho nº" required>
+      </div>
+      <div class="form-group">
+        <label for="notaFiscal">Nº Nota Fiscal (NF)</label>
+        <input type="text" id="notaFiscal" placeholder="Ex: nf nº" required>
+      </div>
+      <div class="form-group">
+        <label for="fornecedor">Fornecedor / Credor</label>
+        <input type="text" id="fornecedor" placeholder="Nome da empresa" required>
+      </div>
+      <div class="form-group">
+        <label for="valor">Valor (R$)</label>
+        <input type="number" step="0.01" id="valor" placeholder="0.00" required>
+      </div>
+      <div class="form-group">
+        <label for="data">Data Emissão</label>
+        <input type="date" id="data" required>
+      </div>
+      <div class="form-group">
+        <label for="arquivoPdf">Anexar Documento (PDF)</label>
+        <input type="file" id="arquivoPdf" accept="application/pdf">
+      </div>
+      <button type="submit" id="btn-salvar">Cadastrar</button>
+    </form>
+
+    <div class="tabela-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Nº Empenho</th>
+            <th>Nº NF</th>
+            <th>Fornecedor / Credor</th>
+            <th>Valor</th>
+            <th>Data Emissão</th>
+            <th>Documento</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tabela-corpo">
+          </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script type="module" src="gestao.js"></script>
+</body>
+</html>
