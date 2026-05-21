@@ -159,12 +159,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <td>
                       <span style="
-                        padding:5px 10px:
+                        padding:5px 10px;
                         border-radius:6px;
                         font-weight:bold;
                         color:while;
-                        backround:${item.satus==='Pago' ? '#22c55e':
-                    '#ef4444'}
+                        backround:${item.satus==='Pago' ? '#22c55e': '#ef4444'}  
                       ">
                         ${item.status ||'Pendente'}
                       </span>
@@ -249,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('valor').value;
 
         const dataVal =
-        document.getElementByld('data').value;
+        document.getElementById('data').value;
 
         const statusVal =
         document.getElementById('status').value;
@@ -277,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 valor: valorVal,
 
-                data: dataval,
+                data: dataVal,
 
                 status: statusVal,
 
