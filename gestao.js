@@ -255,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const statusVal =
         document.getElementById('status').value;
-        item.satus ||'Pendente';
 
         const arquivoPdfInput =
         document.getElementById('arquivoPdf');
