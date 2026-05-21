@@ -3,13 +3,14 @@ import { ref, push, set, onValue, remove } from "https://www.gstatic.com/firebas
 
 document.addEventListener('DOMContentLoaded', () => {
 
-    // MONITOR DE LOGIN
+    // MONITOR DE LOGIN (Tudo roda aqui dentro para termos acesso ao 'user' logado)
     onAuthStateChanged(auth, (user) => {
         if (!user) {
             window.location.href = "login.html";
-            return;
+            return; 
         }
 
+        // CAPTURA DOS ELEMENTOS DA TELA
         const formGestao = document.getElementById('form-gestao');
         const tabelaCorpo = document.getElementById('tabela-corpo');
         const indexEdicao = document.getElementById('index-edicao');
@@ -23,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const valorAcumulado = document.getElementById('valor-acumulado');
         const header = document.querySelector('header');
 
+        // BOTÃO SAIR (Criado dinamicamente no cabeçalho)
         if (!document.getElementById('btn-sair-dinamico')) {
             const btnSair = document.createElement('button');
             btnSair.id = 'btn-sair-dinamico';
@@ -43,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // BANCO DE DADOS ISOLADO POR USUÁRIO
         let bancoDados = [];
         const caminhoBanco = `usuarios/${user.uid}/sistemaGestao`;
 
@@ -58,10 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
             filtrarEAtualizarInterface();
         });
 
+        // CONFIGURAÇÃO DA DATA ATUAL NOS FILTROS
         const hoje = new Date();
         filtroMes.value = String(hoje.getMonth() + 1).padStart(2, '0');
         filtroAno.value = String(hoje.getFullYear());
 
+        // FUNÇÃO DE ATUALIZAR A TABELA
         function filtrarEAtualizarInterface() {
             tabelaCorpo.innerHTML = "";
             let somatorioValores = 0;
@@ -74,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
             txtCompetenciaAtual.textContent = `${contaSelecionada} - Competência: ${filtroMes.options[filtroMes.selectedIndex].text}/${anoSelecionado}`;
 
             bancoDados.forEach((item, index) => {
+                // Proteção contra dados antigos sem data
                 if (!item.data) return;
 
                 const [anoItem, mesItem] = item.data.split('-');
@@ -88,7 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     let botaoPdfHtml = `<span class="btn-sem-pdf">Sem PDF</span>`;
 
                     if (item.arquivos && item.arquivos.length > 0) {
-                        botaoPdfHtml = item.arquivos.map(arquivo => `<a href="${arquivo.arquivo}" target="_blank" class="btn-pdf">${arquivo.nome}</a>`).join('');
+                        // AQUI FOI ALTERADO PARA "Ver PDF 1", "Ver PDF 2", etc.
+                        botaoPdfHtml = item.arquivos.map((arquivo, i) => `<a href="${arquivo.arquivo}" target="_blank" class="btn-pdf">Ver PDF ${i + 1}</a>`).join('');
                     }
 
                     const linha = document.createElement('tr');
@@ -116,11 +123,13 @@ document.addEventListener('DOMContentLoaded', () => {
             valorAcumulado.textContent = somatorioValores.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
         }
 
+        // EVENTOS DOS FILTROS
         filtroMes.addEventListener('change', filtrarEAtualizarInterface);
         filtroAno.addEventListener('change', filtrarEAtualizarInterface);
         filtroConta.addEventListener('change', filtrarEAtualizarInterface);
         btnImprimir.addEventListener('click', () => { window.print(); });
 
+        // FORMULÁRIO - SALVAR OU ATUALIZAR DADOS
         formGestao.addEventListener('submit', function (event) {
             event.preventDefault();
 
@@ -147,12 +156,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     arquivos: pdfBase64 || (idEdicao !== "" ? bancoDados[idEdicao].arquivos : null)
                 };
 
+                // CADASTRO NOVO
                 if (idEdicao === "") {
                     const novaRef = push(ref(window.db, caminhoBanco));
                     set(novaRef, novoRegistro);
                     filtroMes.value = mesInput;
                     filtroAno.value = anoInput;
-                } else {
+                } 
+                // ATUALIZAR EXISTENTE
+                else {
                     const idDoFirebase = bancoDados[idEdicao].firebaseId;
                     delete novoRegistro.firebaseId;
                     set(ref(window.db, `${caminhoBanco}/${idDoFirebase}`), novoRegistro);
@@ -191,10 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // EVENTOS DE CLIQUE NA TABELA (EDITAR E APAGAR)
         tabelaCorpo.addEventListener('click', function (event) {
             const index = event.target.getAttribute('data-index');
             if (!index) return;
 
+            // EDITAR
             if (event.target.classList.contains('btn-editar')) {
                 const item = bancoDados[index];
                 document.getElementById('empenho').value = item.empenho;
@@ -209,6 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('empenho').focus();
             }
 
+            // APAGAR
             if (event.target.classList.contains('btn-excluir')) {
                 if (confirm('Deseja mesmo remover este lançamento?')) {
                     const idDoFirebase = bancoDados[index].firebaseId;
@@ -221,5 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // Executa a primeira listagem
+        filtrarEAtualizarInterface();
     });
 });
