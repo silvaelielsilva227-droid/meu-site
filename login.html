@@ -1,192 +1,140 @@
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Login</title>
-
 <style>
-
-body{
-
-    margin:0;
-
-    font-family:Arial, sans-serif;
-
-    background:#0f172a;
-
-    display:flex;
-
-    justify-content:center;
-
-    align-items:center;
-
-    height:100vh;
-
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #0f172a;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
 }
-
-.login{
-
-    background:white;
-
-    padding:40px;
-
-    border-radius:12px;
-
-    width:350px;
-
+.login {
+    background: white;
+    padding: 40px;
+    border-radius: 12px;
+    width: 350px;
 }
-
-h2{
-
-    text-align:center;
-
-    margin-bottom:20px;
-
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
 }
-
-input{
-
-    width:100%;
-
-    padding:12px;
-
-    margin-bottom:15px;
-
-    border-radius:8px;
-
-    border:1px solid #ccc;
-
-    box-sizing:border-box;
-
+input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
 }
-
-button{
-
-    width:100%;
-
-    padding:12px;
-
-    border:none;
-
-    background:#2563eb;
-
-    color:white;
-
-    border-radius:8px;
-
-    cursor:pointer;
-
-    font-size:16px;
-
+button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    background: #2563eb;
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
 }
-
-button:hover{
-
-    background:#1d4ed8;
-
+button:hover {
+    background: #1d4ed8;
 }
-
-#erro{
-
-    color:red;
-
-    margin-top:10px;
-
-    text-align:center;
-
+#erro {
+    color: red;
+    margin-top: 10px;
+    text-align: center;
+    font-size: 14px;
 }
-
 </style>
-
 </head>
-
 <body>
 
 <div class="login">
+    <h2>Sistema de Login</h2>
 
-<h2>Sistema de Login</h2>
+    <input type="email" id="email" placeholder="Digite seu email">
+    <input type="password" id="senha" placeholder="Digite sua senha">
 
-<input
-type="email"
-id="email"
-placeholder="Digite seu email"
->
+    <button id="btnLogin">Entrar</button>
+    <button id="btnCriarConta" style="background: #22c55e; margin-top: 10px;">Criar Nova Conta</button>
+    <button id="btnEsqueciSenha" style="background: transparent; color: #2563eb; margin-top: 10px; font-size: 14px; text-decoration: underline;">Esqueci minha senha</button>
 
-<input
-type="password"
-id="senha"
-placeholder="Digite sua senha"
->
-
-<button id="btnLogin">
-
-Entrar
-
-</button>
-
-<div id="erro"></div>
-
+    <div id="erro"></div>
 </div>
 
 <script type="module">
-
 import {
-
   auth,
-
-  signInWithEmailAndPassword
-
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail
 } from './firebase.js';
 
-const btnLogin =
-document.getElementById('btnLogin');
+const btnLogin = document.getElementById('btnLogin');
+const btnCriarConta = document.getElementById('btnCriarConta');
+const btnEsqueciSenha = document.getElementById('btnEsqueciSenha');
+const erro = document.getElementById('erro');
 
+// FUNÇÃO 1: ENTRAR NO SISTEMA
 btnLogin.addEventListener('click', async () => {
-
-    const email =
-    document.getElementById('email').value;
-
-    const senha =
-    document.getElementById('senha').value;
-
-    const erro =
-    document.getElementById('erro');
-
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('senha').value;
     erro.innerText = "";
 
-    try{
-
-        await signInWithEmailAndPassword(
-
-            auth,
-
-            email,
-
-            senha
-
-        );
-
-        window.location.href =
-        "index.html";
-
-    }
-
-    catch(error){
-
-        erro.innerText =
-        "Email ou senha inválidos";
-
+    try {
+        await signInWithEmailAndPassword(auth, email, senha);
+        window.location.href = "index.html";
+    } catch(error) {
+        erro.innerText = "Email ou senha inválidos.";
         console.log(error);
-
     }
-
 });
 
+// FUNÇÃO 2: CRIAR NOVA CONTA
+btnCriarConta.addEventListener('click', async () => {
+    const email = document.getElementById('email').value;
+    const senha = document.getElementById('senha').value;
+    erro.innerText = "";
+
+    if (!email || !senha) {
+        erro.innerText = "Preencha e-mail e senha para criar a conta.";
+        return;
+    }
+
+    try {
+        await createUserWithEmailAndPassword(auth, email, senha);
+        alert("Conta criada com sucesso!");
+        window.location.href = "index.html";
+    } catch(error) {
+        erro.innerText = "Erro ao criar conta. A senha deve ter 6+ caracteres ou o email já existe.";
+        console.log(error);
+    }
+});
+
+// FUNÇÃO 3: ESQUECI MINHA SENHA
+btnEsqueciSenha.addEventListener('click', async () => {
+    const email = document.getElementById('email').value;
+    erro.innerText = "";
+
+    if (!email) {
+        erro.innerText = "Digite seu e-mail no campo acima para recuperar a senha.";
+        return;
+    }
+
+    try {
+        await sendPasswordResetEmail(auth, email);
+        alert("Um link para redefinir sua senha foi enviado para o seu e-mail!");
+    } catch(error) {
+        erro.innerText = "Erro ao enviar e-mail. Verifique se digitou corretamente.";
+        console.log(error);
+    }
+});
 </script>
 
 </body>
