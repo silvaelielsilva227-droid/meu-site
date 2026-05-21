@@ -208,12 +208,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (arquivoPdfInput.files.length > 0) {
-                const arquivo = arquivoPdfInput.files[0];
-                const leitor = new FileReader();
-                leitor.onload = function(e) {
-                    salvarDados(e.target.result);
+                const arquivos = arquivoPdfInput.files;
+                const listaArquivos = []
+                let arquivosLidos = 0;
+                for(let i = 0; i < arquivos.lenght;i++){
+                  const arquivoAtual = arquivos[i];
+                  const leitor = new FileReader();
+                  leitor.onload = function(e) {
+                    listaArquivos.push({
+                      nome: arquivoAtual.name,
+                      arquivo:e.target.result
+                    });
+                    arquivoLidos++;
+                    if(arquivosLidos === arquivos.length){
+                       salvarDados(listaArquivos);
                 };
-                leitor.readAsDataURL(arquivo);
+                leitor.readAsDataURL(arquivoAtual);
+               }
             } else {
                 salvarDados();
             }
