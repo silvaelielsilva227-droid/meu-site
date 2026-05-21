@@ -235,8 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const valorVal =
         document.getElementById('valor').value;
 
-        const dataVal =
-        document.getElementById('data').value;
+        const statusVal =
+        document.getElementById('status').value;
 
         const arquivoPdfInput =
         document.getElementById('arquivoPdf');
