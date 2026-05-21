@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         padding:5px 10px;
                         border-radius:6px;
                         font-weight:bold;
-                        color:while;
+                        color:white;
                         background:${item.status==='Pago' ? '#22c55e': '#ef4444'}  
                       ">
                         ${item.status ||'Pendente'}
