@@ -116,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                            target="_blank" 
                            class="btn-pdf">
                            
-                           ${arquivos.nome} 
+                           ${arquivo.nome} 
                           </a>
                        `).join(");
                     }
