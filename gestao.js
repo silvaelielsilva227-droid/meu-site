@@ -170,8 +170,6 @@ document.addEventListener('DOMContentLoaded', () => {
                       </span>
                     </td>
 
-                    <td>${botaoPdHtml}</td>
-
                     <td>${botaoPdfHtml}</td>
 
                     <td>
