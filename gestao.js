@@ -106,6 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `${contaSelecionada} — Competência: ${filtroMes.options[filtroMes.selectedIndex].text}/${anoSelecionado}`;
 
         bancoDados.forEach((item, index) => {
+            if (!item.data) return;
 
             const [anoItem, mesItem] = item.data.split('-');
 
