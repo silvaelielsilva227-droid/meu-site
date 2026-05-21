@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         border-radius:6px;
                         font-weight:bold;
                         color:while;
-                        backround:${item.satus==='Pago' ? '#22c55e': '#ef4444'}  
+                        background:${item.status==='Pago' ? '#22c55e': '#ef4444'}  
                       ">
                         ${item.status ||'Pendente'}
                       </span>
