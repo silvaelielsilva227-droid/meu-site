@@ -1,12 +1,11 @@
 import {
-
   auth,
-
   onAuthStateChanged,
-
   signOut
-
 } from './firebase.js';
+
+// IMPORTAÇÃO DO FIREBASE ADICIONADA AQUI
+import { ref, push, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 // VERIFICA LOGIN
 onAuthStateChanged(auth, (user) => {
@@ -70,7 +69,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const qtdRegistros = document.getElementById('qtd-registros');
     const valorAcumulado = document.getElementById('valor-acumulado');
 
-    let bancoDados = JSON.parse(localStorage.getItem('sistemaGestaoNotasContas')) || [];
+    // MUDANÇA AQUI: ARRAIDEDADOS COMEÇA VAZIO E SINCRONIZA COM O FIREBASE EM TEMPO REAL
+    let bancoDados = [];
+
+    onValue(ref(window.db, 'sistemaGestao'), (snapshot) => {
+        const dados = snapshot.val();
+        if (dados) {
+            bancoDados = Object.keys(dados).map(id => {
+                return { ...dados[id], firebaseId: id };
+            });
+        } else {
+            bancoDados = [];
+        }
+        filtrarEAtualizarInterface();
+    });
 
     const hoje = new Date();
 
@@ -261,9 +273,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             };
 
+            // MUDANÇA AQUI: SALVANDO OU ATUALIZANDO DIRETO NO FIREBASE
             if (idEdicao === "") {
 
-                bancoDados.push(novoRegistro);
+                const novaRef = push(ref(window.db, 'sistemaGestao'));
+                set(novaRef, novoRegistro);
 
                 filtroMes.value = mesInput;
 
@@ -273,8 +287,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             else {
 
-                bancoDados[idEdicao] =
-                novoRegistro;
+                const idDoFirebase = bancoDados[idEdicao].firebaseId;
+                delete novoRegistro.firebaseId; 
+                set(ref(window.db, `sistemaGestao/${idDoFirebase}`), novoRegistro);
 
                 indexEdicao.value = "";
 
@@ -285,16 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 "#22c55e";
 
             }
-
-            localStorage.setItem(
-
-                'sistemaGestaoNotasContas',
-
-                JSON.stringify(bancoDados)
-
-            );
-
-            filtrarEAtualizarInterface();
 
             formGestao.reset();
 
@@ -382,17 +387,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 )
             ) {
 
-                bancoDados.splice(index, 1);
-
-                localStorage.setItem(
-
-                    'sistemaGestaoNotasContas',
-
-                    JSON.stringify(bancoDados)
-
-                );
-
-                filtrarEAtualizarInterface();
+                // MUDANÇA AQUI: REMOVENDO DIRETO DO BANCO DE DADOS DO FIREBASE
+                const idDoFirebase = bancoDados[index].firebaseId;
+                remove(ref(window.db, `sistemaGestao/${idDoFirebase}`));
 
                 formGestao.reset();
 
