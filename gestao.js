@@ -110,8 +110,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                     let botaoPdfHtml = `<span class="btn-sem-pdf">Sem PDF</span>`;
-                    if (item.pdfData) {
-                        botaoPdfHtml = `<a href="${item.pdfData}" target="_blank" class="btn-pdf">Ver PDF</a>`;
+                    if (item.arquivos && item.arquivos.length>0) {
+                        botaoPdfHtml = item.arquivos.map(arquivo =>`
+                          <a href="${arquivo.arquivo}" 
+                           target="_blank" 
+                           class="btn-pdf">
+                           
+                           ${arquivos.nome} 
+                          </a>
+                       `).join(");
                     }
 
                     const linha = document.createElement('tr');
@@ -182,7 +189,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     valor: valorVal,
                     data: dataVal,
                     status: statusVal,
-                    pdfData: pdfBase64 || (idEdicao !== "" ? bancoDados[idEdicao].pdfData : null)
+                    arquivos: pdfBase64 || (idEdicao !== "" ? bancoDados[idEdicao].pdfData : null)
                 };
 
                 // CADASTRO NOVO
