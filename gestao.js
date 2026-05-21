@@ -157,6 +157,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     <td>${dataBR}</td>
 
+                    <td>
+                      <span style="
+                        padding:5px 10px:
+                        border-radius:6px;
+                        font-weight:bold;
+                        color:while;
+                        backround:${item.satus==='Pago' ? '#22c55e':
+                    '#ef4444'}
+                      ">
+                        ${item.status ||'Pendente'}
+                      </span>
+                    </td>
+
+                    <td>${botaoPdHtml}</td>
+
                     <td>${botaoPdfHtml}</td>
 
                     <td>
@@ -235,8 +250,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const valorVal =
         document.getElementById('valor').value;
 
+        const dataVal =
+        document.getElementByld('data').value;
+
         const statusVal =
         document.getElementById('status').value;
+        item.satus ||'Pendente';
 
         const arquivoPdfInput =
         document.getElementById('arquivoPdf');
@@ -261,7 +280,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 valor: valorVal,
 
-                data: dataVal,
+                data: dataval,
+
+                status: statusVal,
 
                 pdfData:
                 pdfBase64 ||
