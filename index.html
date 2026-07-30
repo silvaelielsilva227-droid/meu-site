@@ -3,16 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GF Pizzaria | Autoatendimento</title>
+    <title>GF Pizzaria | Sistema de Pedidos e PIX</title>
 
-    <!-- Fontes e Ícones -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* === TEMA DA PIZZARIA REAL === */
+        /* === TEMA DA PIZZARIA === */
         :root {
             --primary: #D32F2F; --primary-hover: #B71C1C; --secondary: #FBC02D; 
             --bg-body: #1E1A1D; --bg-card: #2A2427; --text-light: #F5F1E7; 
@@ -23,16 +22,12 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; scroll-behavior: smooth; }
         body { background-color: var(--bg-body); color: var(--text-light); overflow-x: hidden; }
         h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
-        a { text-decoration: none; color: inherit; }
         button { cursor: pointer; border: none; background: none; outline: none; font-family: 'Montserrat', sans-serif; }
 
         /* HEADER */
         header { position: fixed; top: 0; width: 100%; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; background: rgba(30, 26, 29, 0.95); backdrop-filter: blur(8px); z-index: 1000; border-bottom: 1px solid var(--border); }
         .logo { font-size: 1.8rem; font-weight: 700; color: var(--text-light); display: flex; align-items: center; gap: 10px; }
         .logo i, .logo span { color: var(--primary); font-family: 'Playfair Display', serif;}
-        .nav-links { display: flex; gap: 25px; list-style: none; }
-        .nav-links a { font-weight: 500; transition: color 0.3s; }
-        .nav-links a:hover { color: var(--secondary); }
         .cart-icon { position: relative; font-size: 1.5rem; cursor: pointer; background: rgba(255,255,255,0.05); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border); transition: 0.3s; }
         .cart-icon:hover { background: var(--primary); border-color: var(--primary); }
         .cart-badge { position: absolute; top: -5px; right: -5px; background: var(--secondary); color: #000; font-size: 0.8rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
@@ -43,10 +38,10 @@
         .hero-content { max-width: 800px; padding: 0 20px; }
         .hero h1 { font-size: 4rem; margin-bottom: 15px; }
         .hero p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 30px; }
-        .btn-primary { background: var(--primary); color: white; padding: 15px 35px; border-radius: 30px; font-weight: 600; display: inline-block; transition: 0.3s; }
+        .btn-primary { background: var(--primary); color: white; padding: 15px 35px; border-radius: 30px; font-weight: 600; display: inline-block; transition: 0.3s; text-decoration: none;}
         .btn-primary:hover { background: var(--primary-hover); transform: translateY(-3px); }
 
-        /* MENU */
+        /* MENU E PRODUTOS */
         .menu-section { padding: 80px 5%; background: #181517; min-height: 500px;}
         .section-title { text-align: center; margin-bottom: 50px; }
         .section-title span { color: var(--primary); font-weight: 600; text-transform: uppercase; font-size: 0.9rem;}
@@ -56,17 +51,20 @@
         .menu-item:hover { border-color: var(--primary); transform: translateY(-5px); }
         .menu-img-wrapper { height: 220px; position: relative; }
         .menu-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
-        .admin-edit-img { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed var(--secondary);}
-        .admin-delete-btn { position: absolute; top: 10px; left: 10px; background: rgba(211, 47, 47, 0.9); color: white; padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed white;}
+        .admin-edit-img { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 5px; font-size: 0.85rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed var(--secondary);}
+        .admin-delete-btn { position: absolute; top: 10px; left: 10px; background: rgba(211, 47, 47, 0.9); color: white; padding: 8px 12px; border-radius: 5px; font-size: 0.85rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed white;}
         .menu-details { padding: 20px; }
         .menu-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; }
         .menu-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px; min-height: 40px; }
         .menu-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 15px;}
         .menu-price { font-size: 1.4rem; font-weight: 700; color: var(--secondary); }
-        .btn-add { background: var(--primary); color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: 0.3s; }
+        .btn-add { background: var(--primary); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: 0.3s; }
         .btn-add:hover { background: var(--primary-hover); transform: scale(1.1); }
         
-        .loader { text-align: center; padding: 50px; color: var(--text-muted); font-size: 1.2rem; grid-column: 1 / -1;}
+        /* Loading e Seed */
+        .loader { text-align: center; padding: 50px; color: var(--text-muted); font-size: 1.2rem; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 20px;}
+        .btn-seed { background: var(--secondary); color: #000; padding: 15px 30px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 1rem;}
+        .btn-seed:hover { transform: scale(1.05); }
 
         /* CARRINHO E CHECKOUT */
         .cart-sidebar { position: fixed; top: 0; right: -450px; width: 100%; max-width: 450px; height: 100vh; background: var(--bg-card); border-left: 1px solid var(--border); z-index: 2000; transition: 0.4s ease; display: flex; flex-direction: column; box-shadow: -5px 0 20px rgba(0,0,0,0.5); }
@@ -89,9 +87,11 @@
         .pay-option { background: var(--bg-body); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s;}
         .pay-option:hover, .pay-option.selected { border-color: var(--secondary); background: rgba(251, 192, 45, 0.1); }
         
-        .pix-area { display: none; background: var(--bg-body); padding: 15px; border-radius: 8px; border: 1px dashed var(--pix); text-align: center; margin-top: 15px;}
-        .pix-area img { width: 150px; height: 150px; margin-bottom: 10px; border-radius: 10px; }
-        .pix-code { background: #111; padding: 10px; border-radius: 5px; font-family: monospace; font-size: 0.8rem; color: var(--pix); word-break: break-all; margin-bottom: 10px;}
+        /* Area do PIX Gerado */
+        .pix-area { display: none; background: var(--bg-body); padding: 20px; border-radius: 8px; border: 1px dashed var(--pix); text-align: center; margin-top: 15px;}
+        .pix-area img { width: 180px; height: 180px; margin-bottom: 15px; border-radius: 10px; background: white; padding: 5px;}
+        .pix-code { background: #111; padding: 12px; border-radius: 5px; font-family: monospace; font-size: 0.8rem; color: var(--pix); word-break: break-all; margin-bottom: 10px;}
+        .btn-copy-pix { background: var(--pix); color: #000; padding: 10px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 10px;}
         
         .cart-footer { padding: 20px; border-top: 1px solid var(--border); background: var(--bg-body); }
         .cart-total { display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; }
@@ -102,17 +102,16 @@
         footer { background: #110E10; padding: 50px 5% 20px; text-align: center; border-top: 1px solid var(--border); position: relative; }
         .admin-lock { position: absolute; bottom: 20px; right: 20px; color: #333; cursor: pointer; font-size: 1.2rem; }
         
-        .admin-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 500px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 15px; z-index: 3000; padding: 25px; display: none; }
+        .admin-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 600px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 15px; z-index: 3000; padding: 25px; display: none; max-height: 90vh; overflow-y: auto;}
         .admin-modal.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
         .btn-save-admin { width: 100%; background: var(--primary); color: white; padding: 12px; border-radius: 8px; font-weight: 600; margin-top: 10px; transition: 0.3s;}
         .btn-save-admin:hover { background: var(--primary-hover); }
+        .input-admin { width: 100%; padding: 12px; background: #111; color: white; border: 1px solid var(--border); border-radius: 5px; margin-bottom: 15px; font-family: 'Montserrat'; }
 
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 12px 25px; border-radius: 30px; font-weight: bold; z-index: 9999; display: none; }
-        
-        /* Loading Overlay */
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 15px 30px; border-radius: 30px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 9999; display:none; justify-content:center; align-items:center; color: white; font-size: 1.5rem; flex-direction: column;}
         .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px;}
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
 
         /* MODO EDIÇÃO ATIVADO */
         body.is-editing .admin-edit-img { display: block; }
@@ -127,9 +126,6 @@
     <!-- HEADER -->
     <header>
         <a href="#" class="logo"><i class="fa-solid fa-pizza-slice"></i> GF <span>Pizzaria</span></a>
-        <ul class="nav-links">
-            <li><a href="#cardapio">Cardápio</a></li>
-        </ul>
         <div class="cart-icon" onclick="toggleCart()">
             <i class="fa-solid fa-cart-shopping"></i>
             <span class="cart-badge" id="cart-count">0</span>
@@ -141,7 +137,7 @@
         <div class="hero-bg"></div>
         <div class="hero-content">
             <h1>A Melhor Pizza de Curuá</h1>
-            <p>Faça seu pedido automático agora mesmo. Massa artesanal e entrega rápida!</p>
+            <p>Faça seu pedido automático. Pague via PIX com QR Code dinâmico e receba em casa!</p>
             <a href="#cardapio" class="btn-primary">Ver Cardápio</a>
         </div>
     </section>
@@ -152,13 +148,12 @@
             <span>Prontas para o Forno</span>
             <h2 class="serif">Nosso Cardápio</h2>
         </div>
-        <!-- É aqui que as pizzas do seu banco de dados vão aparecer -->
         <div class="menu-grid" id="menu-container">
             <div class="loader"><i class="fa-solid fa-spinner fa-spin"></i> Carregando seu cardápio do Firebase...</div>
         </div>
     </section>
 
-    <!-- CARRINHO LATERAL -->
+    <!-- CARRINHO E CHECKOUT -->
     <div class="cart-sidebar" id="cart-sidebar">
         <div class="cart-header">
             <h3><i class="fa-solid fa-basket-shopping"></i> Seu Pedido</h3>
@@ -170,10 +165,11 @@
                     <div class="empty-cart" id="empty-msg">O carrinho está vazio.</div>
                 </div>
             </div>
+            
             <div id="checkout-view" class="checkout-area">
                 <h4 style="margin-bottom: 15px; color: var(--secondary);">Dados de Entrega</h4>
-                <div class="checkout-group"><label>Seu Nome</label><input type="text" id="c-name" placeholder="Ex: João Silva"></div>
-                <div class="checkout-group"><label>Endereço Completo</label><input type="text" id="c-address" placeholder="Ex: R. Principal, 120 - Centro"></div>
+                <div class="checkout-group"><input type="text" id="c-name" placeholder="Seu Nome (Ex: João Silva)"></div>
+                <div class="checkout-group"><input type="text" id="c-address" placeholder="Rua, Número, Bairro"></div>
                 
                 <h4 style="margin: 25px 0 15px; color: var(--secondary);">Forma de Pagamento</h4>
                 <div class="payment-options">
@@ -188,17 +184,21 @@
                     </label>
                 </div>
 
+                <!-- GERADOR DE PIX -->
                 <div class="pix-area" id="pix-area">
-                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=00020126580014br.gov.bcb.pix0136pix@gfpizzaria.com.br5204000053039865802BR5911GF Pizzaria6005Curua62070503***6304FB43" alt="PIX">
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0;">Copie a chave para pagar no app do banco:</p>
-                    <div class="pix-code">00020126580014br.gov.bcb.pix0136pix@gf...</div>
+                    <h4 style="color: var(--pix); margin-bottom: 10px;">Escaneie para Pagar</h4>
+                    <img id="pix-qr-code" src="" alt="QR Code Pix">
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0;">Ou copie a chave abaixo para o app do seu banco:</p>
+                    <div class="pix-code" id="pix-copy-text">Gerando chave...</div>
+                    <button class="btn-copy-pix" onclick="copyPixCode()"><i class="fa-regular fa-copy"></i> Copiar Código PIX</button>
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">Após pagar, clique em "Enviar Comprovante" abaixo.</p>
                 </div>
             </div>
         </div>
         <div class="cart-footer">
             <div class="cart-total"><span>Total:</span><span id="cart-total-value">R$ 0,00</span></div>
-            <button class="btn-checkout" id="btn-goto-checkout" onclick="proceedToCheckout()">Avançar <i class="fa-solid fa-arrow-right"></i></button>
-            <button class="btn-confirm-order" id="btn-confirm-order" onclick="completeOrder()"><i class="fa-brands fa-whatsapp"></i> Enviar Pedido ao Restaurante</button>
+            <button class="btn-checkout" id="btn-goto-checkout" onclick="proceedToCheckout()">Avançar para Pagamento <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn-confirm-order" id="btn-confirm-order" onclick="completeOrder()"><i class="fa-brands fa-whatsapp"></i> Enviar Comprovante/Pedido</button>
         </div>
     </div>
 
@@ -211,41 +211,47 @@
     <!-- MODAL DO ADMIN -->
     <div class="admin-modal" id="admin-modal">
         <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-            <h3 style="color: var(--secondary);">Painel (Firebase Database)</h3>
-            <i class="fa-solid fa-xmark" onclick="closeAdmin()" style="cursor: pointer; color: #fff;"></i>
+            <h3 style="color: var(--secondary);">Painel de Controle</h3>
+            <i class="fa-solid fa-xmark" onclick="closeAdmin()" style="cursor: pointer; color: #fff; font-size: 1.2rem;"></i>
         </div>
         
-        <label style="display:block; font-size:0.9rem; color: #ccc;">WhatsApp para receber pedidos:</label>
-        <input type="text" id="admin-wa" style="width: 100%; padding: 10px; background: #111; color: white; border: 1px solid var(--border); border-radius: 5px; margin-bottom: 20px;">
-        <button class="btn-save-admin" onclick="saveAdminSettings()">Salvar WhatsApp</button>
+        <h4 style="margin-bottom: 10px; color: var(--primary);">1. Configurações Financeiras</h4>
+        <label style="display:block; font-size:0.85rem; color: #ccc;">Sua Chave PIX (Telefone, CPF, Email ou Aleatória):</label>
+        <input type="text" id="admin-pix-key" class="input-admin" placeholder="Ex: 5593991234567">
+        
+        <label style="display:block; font-size:0.85rem; color: #ccc;">Nome do Beneficiário (Seu Nome ou Empresa):</label>
+        <input type="text" id="admin-pix-name" class="input-admin" placeholder="Ex: Joao da Silva">
+        
+        <label style="display:block; font-size:0.85rem; color: #ccc;">Cidade da Conta:</label>
+        <input type="text" id="admin-pix-city" class="input-admin" placeholder="Ex: Curua">
+        
+        <label style="display:block; font-size:0.85rem; color: #ccc;">WhatsApp para receber pedidos:</label>
+        <input type="text" id="admin-wa" class="input-admin" placeholder="Ex: 5593991234567">
+        
+        <button class="btn-save-admin" onclick="saveAdminSettings()">Salvar Configurações Gerais</button>
         
         <hr style="border:0; border-top: 1px solid var(--border); margin: 25px 0;">
         
-        <h4 style="margin-bottom: 10px;">Adicionar Nova Pizza ao Banco</h4>
-        <input type="text" id="add-name" placeholder="Nome (Ex: Calabresa)" style="width: 100%; padding: 10px; background: #111; color: white; border: 1px solid var(--border); border-radius: 5px; margin-bottom: 10px;">
-        <input type="text" id="add-desc" placeholder="Ingredientes (Ex: Queijo, tomate...)" style="width: 100%; padding: 10px; background: #111; color: white; border: 1px solid var(--border); border-radius: 5px; margin-bottom: 10px;">
-        <input type="number" id="add-price" placeholder="Preço (Ex: 35.90)" step="0.01" style="width: 100%; padding: 10px; background: #111; color: white; border: 1px solid var(--border); border-radius: 5px; margin-bottom: 15px;">
+        <h4 style="margin-bottom: 10px; color: var(--primary);">2. Adicionar Pizza ao Cardápio</h4>
+        <input type="text" id="add-name" placeholder="Nome (Ex: Calabresa)" class="input-admin">
+        <input type="text" id="add-desc" placeholder="Ingredientes (Ex: Queijo, tomate...)" class="input-admin">
+        <input type="number" id="add-price" placeholder="Preço (Ex: 35.90)" step="0.01" class="input-admin">
         
-        <button class="btn-save-admin" style="background: var(--secondary); color: #000;" onclick="addNewProductToDB()">+ Salvar Produto no Site</button>
+        <button class="btn-save-admin" style="background: var(--secondary); color: #000;" onclick="addNewProductToDB()">+ Salvar Produto</button>
     </div>
 
-    <!-- Input escondido para Upload de Fotos -->
+    <!-- Input escondido para Upload -->
     <input type="file" id="image-uploader" style="display: none;" accept="image/*">
 
     <!-- =========================================================================================
-         FIREBASE (REALTIME DATABASE) & JAVASCRIPT
+         FIREBASE (SUAS CHAVES V10.12.2) E LÓGICA DO SISTEMA
          ========================================================================================= -->
     <script type="module">
-        // 1. IMPORTAÇÕES DA SUA VERSÃO (10.12.2)
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        
-        // Importações do Realtime Database
         import { getDatabase, ref as dbRef, get, push, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-        
-        // Importações do Storage (Para fotos)
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-        // SUA CONFIGURAÇÃO EXATA
+        // SUAS CHAVES AQUI
         const firebaseConfig = {
             apiKey: "AIzaSyCV-NLHOdBQDI88vQGDZ_rxCjx3wluAEqE",
             authDomain: "meu-site-2e63f.firebaseapp.com",
@@ -257,73 +263,74 @@
             measurementId: "G-H43NTQNRWC"
         };
 
-        // INICIALIZA O APP, O REALTIME DATABASE E O STORAGE
         const app = initializeApp(firebaseConfig);
         const db = getDatabase(app);
         const storage = getStorage(app);
 
-        // VARIÁVEIS DO SISTEMA
+        // Variáveis de Configuração
         let cart = [];
         let waNumber = "5500000000000"; 
+        let pixKey = "";
+        let pixName = "";
+        let pixCity = "Curua";
+        let cartTotalValue = 0;
+        let generatedPixPayload = "";
+        
         let selectedPayMethod = "";
         let isEditing = false;
         let currentUploadingId = null; 
-        
-        // *Nota: Como você tem a importação do Auth no seu código original, 
-        // no futuro você pode colocar uma tela de Login e Senha real aqui.
-        // Para manter o fluxo que criamos, mantive o prompt simples:
         const SENHA_ADMIN = 'admin123';
 
-        /* =======================================================
-           PUXAR DADOS DO FIREBASE (REALTIME DATABASE)
-           ======================================================= */
-        
+        /* ================= CARREGAR DADOS DO BANCO ================= */
         async function loadSettings() {
             try {
                 const snapshot = await get(dbRef(db, 'settings/geral'));
                 if (snapshot.exists()) {
-                    waNumber = snapshot.val().waNumber;
+                    const data = snapshot.val();
+                    waNumber = data.waNumber || "5500000000000";
+                    pixKey = data.pixKey || "";
+                    pixName = data.pixName || "";
+                    pixCity = data.pixCity || "Curua";
                 }
-            } catch(e) {
-                console.log("Banco vazio ou regras bloqueadas.");
-            }
+            } catch(e) { console.log("Configurações padrão carregadas."); }
         }
 
         async function loadMenu() {
             const container = document.getElementById('menu-container');
-            
             try {
                 const snapshot = await get(dbRef(db, 'produtos'));
                 
                 if (!snapshot.exists()) {
-                    container.innerHTML = `<div class="loader">Seu cardápio está vazio. Faça login e adicione pizzas!</div>`;
+                    // SE O BANCO ESTIVER VAZIO, MOSTRA O BOTÃO MÁGICO DE CARREGAR EXEMPLOS
+                    container.innerHTML = `
+                        <div class="loader">
+                            <p>Seu cardápio está vazio.</p>
+                            <button class="btn-seed" onclick="seedDatabase()">Carregar Cardápio de Exemplo</button>
+                        </div>`;
                     return;
                 }
 
                 container.innerHTML = '';
-                
-                // Percorre todos os produtos no banco
-                snapshot.forEach((childSnapshot) => {
-                    const data = childSnapshot.val();
-                    const prodId = childSnapshot.key;
-                    
+                snapshot.forEach((child) => {
+                    const data = child.val();
+                    const prodId = child.key;
+                    // Se não tiver foto, bota o placeholder
                     const imgUrl = data.imagemUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600";
-                    const precoFormatado = parseFloat(data.preco).toFixed(2).replace('.', ',');
+                    const preco = parseFloat(data.preco).toFixed(2).replace('.', ',');
 
                     const div = document.createElement('div');
                     div.className = 'menu-item';
-                    
                     div.innerHTML = `
                         <div class="menu-img-wrapper">
                             <button class="admin-delete-btn" onclick="deleteProduct('${prodId}')"><i class="fa-solid fa-trash"></i></button>
-                            <button class="admin-edit-img" onclick="triggerUpload('${prodId}')"><i class="fa-solid fa-camera"></i> Trocar Foto</button>
+                            <button class="admin-edit-img" onclick="triggerUpload('${prodId}')"><i class="fa-solid fa-camera"></i> Mudar Foto</button>
                             <img src="${imgUrl}" alt="${data.nome}">
                         </div>
                         <div class="menu-details">
                             <h3 class="menu-name">${data.nome}</h3>
                             <p class="menu-desc">${data.descricao}</p>
                             <div class="menu-footer">
-                                <span class="menu-price">R$ <span>${precoFormatado}</span></span>
+                                <span class="menu-price">R$ <span>${preco}</span></span>
                                 <button class="btn-add" onclick="addToCart('${data.nome}', ${data.preco})"><i class="fa-solid fa-plus"></i></button>
                             </div>
                         </div>
@@ -331,8 +338,7 @@
                     container.appendChild(div);
                 });
             } catch (error) {
-                console.error(error);
-                container.innerHTML = `<div class="loader" style="color:red;">Erro de permissão no Firebase. Ajuste as Regras (Rules) do Database para read/write true.</div>`;
+                container.innerHTML = `<div class="loader" style="color:red;">Erro ao carregar o banco. Aperte F5.</div>`;
             }
         }
 
@@ -341,44 +347,61 @@
             await loadMenu();
         };
 
-        /* =======================================================
-           SISTEMA ADMINISTRATIVO (SALVAR NO FIREBASE)
-           ======================================================= */
-        
+        /* ================= CARREGAR CARDÁPIO MÁGICO (SEED) ================= */
+        window.seedDatabase = async () => {
+            showLoading("Gerando pizzas com imagens...");
+            const pizzasIniciais = [
+                {nome: "Calabresa Especial", descricao: "Massa fina, molho, muita muçarela, calabresa e cebola.", preco: 35.00, imagemUrl: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=600"},
+                {nome: "Marguerita Tradicional", descricao: "Muçarela, rodelas de tomate fresco e manjericão.", preco: 32.00, imagemUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600"},
+                {nome: "Frango com Catupiry", descricao: "Frango desfiado suculento com legítimo requeijão Catupiry.", preco: 38.00, imagemUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600"}
+            ];
+            try {
+                for(let pizza of pizzasIniciais) {
+                    await push(dbRef(db, 'produtos'), pizza);
+                }
+                hideLoading();
+                showToast("Cardápio Criado!");
+                await loadMenu(); 
+            } catch(e) { hideLoading(); alert("Erro ao criar."); }
+        }
+
+        /* ================= PAINEL ADMINISTRADOR ================= */
         window.closeAdmin = () => document.getElementById('admin-modal').classList.remove('show');
         
         document.getElementById('btn-login').addEventListener('click', () => {
             const pass = prompt("Digite a senha do painel (admin123):");
             if (pass === SENHA_ADMIN) {
-                isEditing = true;
-                document.body.classList.add('is-editing');
+                isEditing = true; document.body.classList.add('is-editing');
                 document.getElementById('admin-modal').classList.add('show');
+                
+                // Preenche os inputs
                 document.getElementById('admin-wa').value = waNumber;
+                document.getElementById('admin-pix-key').value = pixKey;
+                document.getElementById('admin-pix-name').value = pixName;
+                document.getElementById('admin-pix-city').value = pixCity;
+                
                 showToast("Modo Admin Ativado!");
             }
         });
 
-        // Salvar WhatsApp
         window.saveAdminSettings = async () => {
             showLoading("Salvando...");
             const num = document.getElementById('admin-wa').value.replace(/\D/g, '');
-            if(num.length > 9) {
-                try {
-                    await set(dbRef(db, 'settings/geral'), { waNumber: num });
-                    waNumber = num;
-                    
-                    isEditing = false;
-                    document.body.classList.remove('is-editing');
-                    closeAdmin();
-                    hideLoading();
-                    showToast("Salvo!");
-                } catch (e) {
-                    hideLoading(); alert("Erro ao salvar.");
-                }
-            } else { hideLoading(); alert("Número inválido."); }
+            const pKey = document.getElementById('admin-pix-key').value.trim();
+            const pName = document.getElementById('admin-pix-name').value.trim().substring(0, 25);
+            const pCity = document.getElementById('admin-pix-city').value.trim().substring(0, 15);
+
+            try {
+                await set(dbRef(db, 'settings/geral'), { 
+                    waNumber: num, pixKey: pKey, pixName: pName, pixCity: pCity 
+                });
+                waNumber = num; pixKey = pKey; pixName = pName; pixCity = pCity;
+                
+                isEditing = false; document.body.classList.remove('is-editing');
+                closeAdmin(); hideLoading(); showToast("Configurações Salvas!");
+            } catch (e) { hideLoading(); alert("Erro ao salvar."); }
         };
 
-        // Adicionar Produto
         window.addNewProductToDB = async () => {
             const nome = document.getElementById('add-name').value;
             const desc = document.getElementById('add-desc').value;
@@ -388,83 +411,47 @@
 
             showLoading("Criando pizza...");
             try {
-                // 'push' cria um ID único automaticamente no Realtime Database
-                await push(dbRef(db, 'produtos'), {
-                    nome: nome,
-                    descricao: desc,
-                    preco: preco,
-                    imagemUrl: "" 
-                });
-                
+                await push(dbRef(db, 'produtos'), { nome, descricao: desc, preco, imagemUrl: "" });
                 document.getElementById('add-name').value = '';
                 document.getElementById('add-desc').value = '';
                 document.getElementById('add-price').value = '';
-                
-                hideLoading();
-                showToast("Adicionado!");
-                await loadMenu(); 
-            } catch (e) {
-                hideLoading(); alert("Erro ao adicionar produto.");
-            }
+                hideLoading(); showToast("Adicionado!"); await loadMenu(); 
+            } catch (e) { hideLoading(); alert("Erro ao adicionar."); }
         };
 
-        // Apagar Produto
         window.deleteProduct = async (id) => {
-            if(confirm("Tem certeza que deseja apagar?")) {
+            if(confirm("Apagar pizza do cardápio?")) {
                 showLoading("Apagando...");
                 try {
                     await remove(dbRef(db, 'produtos/' + id));
-                    hideLoading();
-                    showToast("Pizza apagada!");
-                    await loadMenu(); 
-                } catch(e) {
-                    hideLoading(); alert("Erro ao apagar.");
-                }
+                    hideLoading(); showToast("Apagada!"); await loadMenu(); 
+                } catch(e) { hideLoading(); alert("Erro ao apagar."); }
             }
         }
 
-        /* =======================================================
-           UPLOAD DE FOTO (FIREBASE STORAGE)
-           ======================================================= */
+        /* ================= UPLOAD DE IMAGEM PARA O STORAGE ================= */
         const uploader = document.getElementById('image-uploader');
-        
-        window.triggerUpload = (id) => {
-            currentUploadingId = id;
-            uploader.click();
-        };
+        window.triggerUpload = (id) => { currentUploadingId = id; uploader.click(); };
 
         uploader.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file || !currentUploadingId) return;
 
-            showLoading("Enviando foto...");
-            
+            showLoading("Enviando foto (Aguarde)...");
             try {
                 const sRef = storageRef(storage, 'produtos/' + Date.now() + '_' + file.name);
                 await uploadBytes(sRef, file);
                 const downloadURL = await getDownloadURL(sRef);
                 
-                // Atualiza o produto no Realtime Database com a foto nova
-                await update(dbRef(db, 'produtos/' + currentUploadingId), {
-                    imagemUrl: downloadURL
-                });
-
-                hideLoading();
-                showToast("Foto salva!");
-                await loadMenu(); 
-                
+                await update(dbRef(db, 'produtos/' + currentUploadingId), { imagemUrl: downloadURL });
+                hideLoading(); showToast("Foto salva com sucesso!"); await loadMenu(); 
             } catch (error) {
-                hideLoading();
-                alert("Erro ao enviar foto. Verifique regras do Storage.");
-                console.error(error);
+                hideLoading(); alert("⚠️ Erro. Lembre de liberar as REGRAS do Storage no Firebase!");
             }
             uploader.value = ''; 
         });
 
-
-        /* =======================================================
-           LÓGICA DO CARRINHO E COMPRA (LOCAL)
-           ======================================================= */
+        /* ================= CARRINHO E GERADOR DE PIX ================= */
         window.toggleCart = () => {
             document.getElementById('cart-sidebar').classList.toggle('open');
             document.getElementById('cart-view').style.display = 'block';
@@ -473,33 +460,25 @@
             document.getElementById('btn-confirm-order').style.display = 'none';
         };
 
-        window.addToCart = (name, price) => {
-            cart.push({ name, price });
-            updateCart();
-            showToast("Adicionado!");
-        };
-
+        window.addToCart = (name, price) => { cart.push({ name, price }); updateCart(); showToast("Adicionado!"); };
         window.removeCart = (index) => { cart.splice(index, 1); updateCart(); };
 
         function updateCart() {
             const container = document.getElementById('cart-items-container');
-            const emptyMsg = document.getElementById('empty-msg');
             const totalVal = document.getElementById('cart-total-value');
             const badge = document.getElementById('cart-count');
             
-            container.innerHTML = ''; let total = 0;
+            container.innerHTML = ''; cartTotalValue = 0;
             if (cart.length === 0) {
-                container.appendChild(emptyMsg); emptyMsg.style.display = 'block';
+                document.getElementById('empty-msg').style.display = 'block';
             } else {
-                emptyMsg.style.display = 'none'; container.appendChild(emptyMsg);
+                document.getElementById('empty-msg').style.display = 'none';
                 cart.forEach((item, index) => {
-                    total += item.price;
-                    const div = document.createElement('div'); div.className = 'cart-item';
-                    div.innerHTML = `<div><div class="cart-item-title">${item.name}</div><div class="cart-item-price">R$ ${item.price.toFixed(2).replace('.', ',')}</div></div><i class="fa-solid fa-trash remove-btn" onclick="removeCart(${index})"></i>`;
-                    container.appendChild(div);
+                    cartTotalValue += item.price;
+                    container.innerHTML += `<div class="cart-item"><div><div class="cart-item-title">${item.name}</div><div class="cart-item-price">R$ ${item.price.toFixed(2).replace('.', ',')}</div></div><i class="fa-solid fa-trash remove-btn" onclick="removeCart(${index})"></i></div>`;
                 });
             }
-            totalVal.innerText = `R$ ${total.toFixed(2).replace('.', ',')}`;
+            totalVal.innerText = `R$ ${cartTotalValue.toFixed(2).replace('.', ',')}`;
             badge.innerText = cart.length;
         }
 
@@ -515,8 +494,31 @@
             selectedPayMethod = method;
             document.querySelectorAll('.pay-option').forEach(el => el.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
-            document.getElementById('pix-area').style.display = (method === 'PIX') ? 'block' : 'none';
+            
+            // SE FOR PIX, GERA O CÓDIGO
+            if(method === 'PIX') {
+                if(!pixKey || !pixName) {
+                    alert("O dono ainda não configurou a chave PIX no painel!");
+                    document.getElementById('pix-area').style.display = 'none';
+                    return;
+                }
+                
+                // Gera a string do PIX
+                generatedPixPayload = buildPixPayload(pixKey, pixName, pixCity, cartTotalValue);
+                document.getElementById('pix-copy-text').innerText = generatedPixPayload;
+                // Gera a imagem do QR Code via API pública
+                document.getElementById('pix-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedPixPayload)}`;
+                document.getElementById('pix-area').style.display = 'block';
+                
+            } else {
+                document.getElementById('pix-area').style.display = 'none';
+            }
         };
+
+        window.copyPixCode = () => {
+            navigator.clipboard.writeText(generatedPixPayload);
+            showToast("Chave PIX Copiada!");
+        }
 
         window.completeOrder = () => {
             const name = document.getElementById('c-name').value;
@@ -526,17 +528,36 @@
             if(selectedPayMethod === "") { alert("Selecione forma de pagamento!"); return; }
 
             let msg = `*NOVO PEDIDO (SITE) - GF PIZZARIA*%0A%0A*Cliente:* ${name}%0A*Endereço:* ${address}%0A%0A*RESUMO:*%0A`;
-            let total = 0;
-            cart.forEach(item => {
-                msg += `▪️ ${item.name} - R$ ${item.price.toFixed(2).replace('.',',')}%0A`;
-                total += item.price;
-            });
-            msg += `%0A*TOTAL: R$ ${total.toFixed(2).replace('.',',')}*%0A*Pagamento:* ${selectedPayMethod}%0A%0A`;
+            cart.forEach(item => { msg += `▪️ ${item.name} - R$ ${item.price.toFixed(2).replace('.',',')}%0A`; });
+            msg += `%0A*TOTAL: R$ ${cartTotalValue.toFixed(2).replace('.',',')}*%0A*Pagamento:* ${selectedPayMethod}%0A%0A`;
+            
+            if(selectedPayMethod === 'PIX') { msg += `_O pagamento foi via PIX no site. Estou enviando o comprovante!_`; }
             
             window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
             cart = []; updateCart(); window.toggleCart();
             document.getElementById('c-name').value = ''; document.getElementById('c-address').value = '';
         };
+
+        /* ================= GERADOR DE PAYLOAD DO PIX (BR CODE) ================= */
+        function buildPixPayload(key, name, city, amount) {
+            const formatStr = (val) => String(val.length).padStart(2, '0');
+            const accInfo = `0014br.gov.bcb.pix01${formatStr(key)}${key}`;
+            const amountStr = amount.toFixed(2);
+            // Monta o cabeçalho padrão EMV do PIX
+            let payload = `00020126${formatStr(accInfo)}${accInfo}52040000530398654${formatStr(amountStr)}${amountStr}5802BR59${formatStr(name)}${name}60${formatStr(city)}${city}62070503***6304`;
+            
+            // Calcula o Checksum CRC16
+            let polynomial = 0x1021; let result = 0xFFFF;
+            for (let i = 0; i < payload.length; i++) {
+                result ^= payload.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) {
+                    if ((result & 0x8000) !== 0) result = (result << 1) ^ polynomial;
+                    else result <<= 1;
+                }
+            }
+            let crc = (result & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+            return payload + crc;
+        }
 
         /* FUNÇÕES DE UI */
         window.showToast = (msg) => {
@@ -544,13 +565,8 @@
             toast.innerText = msg; toast.style.display = 'block';
             setTimeout(() => { toast.style.display = 'none'; }, 3000);
         };
-        function showLoading(text) {
-            document.getElementById('loading-text').innerText = text;
-            document.getElementById('loading-overlay').style.display = 'flex';
-        }
-        function hideLoading() {
-            document.getElementById('loading-overlay').style.display = 'none';
-        }
+        function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').style.display = 'flex'; }
+        function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
     </script>
 </body>
 </html>
