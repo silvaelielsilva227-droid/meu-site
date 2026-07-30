@@ -3,16 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GF Pizzaria | Cardápio Digital</title>
+    <title>GF Pizzaria | O Melhor Sabor</title>
 
     <!-- Fontes e Ícones -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Biblioteca Geradora de QR Code (Não falha) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
     <style>
-        /* === TEMA DA PIZZARIA === */
+        /* === TEMA E CORES === */
         :root {
             --primary: #D32F2F; --primary-hover: #B71C1C; --secondary: #FBC02D; 
             --bg-body: #1E1A1D; --bg-card: #2A2427; --text-light: #F5F1E7; 
@@ -43,19 +46,29 @@
         .btn-primary { background: var(--primary); color: white; padding: 15px 40px; border-radius: 30px; font-weight: 600; display: inline-block; transition: 0.3s; font-size: 1.1rem; box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);}
         .btn-primary:hover { background: var(--primary-hover); transform: translateY(-3px); }
 
-        /* MENU E PRODUTOS */
+        /* MENU E FILTROS */
         .menu-section { padding: 80px 5%; background: #181517; min-height: 500px;}
-        .section-title { text-align: center; margin-bottom: 50px; }
+        .section-title { text-align: center; margin-bottom: 30px; }
         .section-title span { color: var(--primary); font-weight: 600; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 2px;}
         .section-title h2 { font-size: 2.8rem; margin-top: 10px; }
+        
+        .filters { display: flex; justify-content: center; gap: 15px; margin-bottom: 40px; flex-wrap: wrap;}
+        .filter-btn { background: var(--bg-card); color: var(--text-light); border: 1px solid var(--border); padding: 10px 25px; border-radius: 30px; font-weight: 600; transition: 0.3s;}
+        .filter-btn.active, .filter-btn:hover { background: var(--primary); border-color: var(--primary);}
+
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; max-width: 1200px; margin: 0 auto; }
         .menu-item { background: var(--bg-card); border-radius: 15px; overflow: hidden; border: 1px solid var(--border); transition: 0.3s; position: relative;}
+        .menu-item.hidden { display: none; }
         .menu-item:hover { border-color: var(--primary); transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.5);}
         .menu-img-wrapper { height: 220px; position: relative; overflow: hidden;}
         .menu-img-wrapper img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s;}
         .menu-item:hover .menu-img-wrapper img { transform: scale(1.05); }
+        .cat-badge { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.8); color: var(--secondary); padding: 5px 10px; border-radius: 5px; font-size: 0.8rem; font-weight: bold; text-transform: uppercase;}
+        
+        /* Botões do Admin no Cardápio */
         .admin-edit-img { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 5px; font-size: 0.85rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed var(--secondary);}
         .admin-delete-btn { position: absolute; top: 10px; left: 10px; background: rgba(211, 47, 47, 0.9); color: white; padding: 8px 12px; border-radius: 5px; font-size: 0.85rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed white;}
+        
         .menu-details { padding: 25px; }
         .menu-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; }
         .menu-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px; min-height: 40px; }
@@ -65,25 +78,21 @@
         .btn-add:hover { background: var(--primary-hover); transform: scale(1.1); box-shadow: 0 0 15px rgba(211, 47, 47, 0.6);}
         
         .loader { text-align: center; padding: 50px; color: var(--text-muted); font-size: 1.2rem; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 20px;}
-        .btn-seed { background: var(--secondary); color: #000; padding: 15px 30px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 1rem;}
-        .btn-seed:hover { transform: scale(1.05); }
 
-        /* === SISTEMA DE LOGIN NOVO (LINDO E MODERNO) === */
+        /* === SISTEMA DE LOGIN === */
         .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; justify-content: center; align-items: center; opacity: 0; transition: 0.3s;}
         .login-overlay.show { display: flex; opacity: 1; }
-        .login-box { background: var(--bg-card); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.9); text-align: center; position: relative; transform: translateY(20px); transition: 0.3s;}
-        .login-overlay.show .login-box { transform: translateY(0); }
-        .login-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
-        .login-close:hover { color: white; }
+        .login-box { background: var(--bg-card); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.9); text-align: center;}
+        .login-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; }
         .login-icon { font-size: 3rem; color: var(--primary); margin-bottom: 20px; }
         .login-box h3 { font-size: 1.8rem; margin-bottom: 10px; color: var(--text-light); }
         .login-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px; }
-        .login-input { width: 100%; background: #111; color: white; border: 2px solid var(--border); padding: 15px; border-radius: 10px; font-size: 1.1rem; text-align: center; margin-bottom: 20px; letter-spacing: 2px; transition: 0.3s;}
+        .login-input { width: 100%; background: #111; color: white; border: 2px solid var(--border); padding: 15px; border-radius: 10px; font-size: 1.1rem; text-align: center; margin-bottom: 20px; transition: 0.3s;}
         .login-input:focus { border-color: var(--primary); outline: none; }
         .login-btn { width: 100%; background: var(--primary); color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: 700; transition: 0.3s; }
         .login-btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
 
-        /* === CARRINHO E CHECKOUT CORRIGIDO === */
+        /* === CARRINHO E CHECKOUT PIX === */
         .cart-sidebar { position: fixed; top: 0; right: -450px; width: 100%; max-width: 450px; height: 100vh; background: var(--bg-card); border-left: 1px solid var(--border); z-index: 2000; transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1); display: flex; flex-direction: column; box-shadow: -5px 0 30px rgba(0,0,0,0.6); }
         .cart-sidebar.open { right: 0; }
         .cart-header { padding: 25px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
@@ -111,9 +120,9 @@
         .pay-option { background: var(--bg-body); border: 1px solid var(--border); padding: 15px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500;}
         .pay-option:hover, .pay-option.selected { border-color: var(--secondary); background: rgba(251, 192, 45, 0.1); color: var(--secondary);}
         
-        /* Area do PIX */
+        /* Area do QR Code Nativo */
         .pix-area { display: none; background: #111; padding: 20px; border-radius: 12px; border: 1px dashed var(--pix); text-align: center; margin-top: 15px; animation: fadeIn 0.3s;}
-        .pix-area img { width: 180px; height: 180px; margin-bottom: 15px; border-radius: 10px; background: white; padding: 10px;}
+        .pix-area #qrcode-container { display: flex; justify-content: center; margin-bottom: 15px; background: white; padding: 15px; border-radius: 10px; width: fit-content; margin: 0 auto 15px auto;}
         .pix-code { background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; color: var(--pix); word-break: break-all; margin-bottom: 15px; border: 1px solid rgba(50, 188, 173, 0.3);}
         .btn-copy-pix { background: var(--pix); color: #000; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s;}
         .btn-copy-pix:hover { background: #26998c; transform: translateY(-2px);}
@@ -124,7 +133,7 @@
         .btn-confirm-order { display: none; background: var(--success); box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);}
         .btn-checkout:hover, .btn-confirm-order:hover { transform: translateY(-3px); }
 
-        /* FOOTER & ADMIN */
+        /* FOOTER & ADMIN MODAL */
         footer { background: #110E10; padding: 50px 5% 20px; text-align: center; border-top: 1px solid var(--border); position: relative; }
         .admin-lock { position: absolute; bottom: 20px; right: 20px; color: #444; cursor: pointer; font-size: 1.2rem; transition: 0.3s;}
         .admin-lock:hover { color: var(--secondary); }
@@ -137,7 +146,6 @@
         .input-admin:focus { border-color: var(--primary); outline: none;}
 
         .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 15px 30px; border-radius: 30px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-size: 1.1rem; animation: slideDown 0.3s;}
-        
         .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 9999; display:none; justify-content:center; align-items:center; color: white; font-size: 1.5rem; flex-direction: column; backdrop-filter: blur(5px);}
         .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px;}
         
@@ -168,39 +176,44 @@
     <section class="hero">
         <div class="hero-bg"></div>
         <div class="hero-content">
-            <h1>A Melhor Pizza de Curuá</h1>
-            <p>Faça seu pedido automático. Pague via PIX, Cartão ou Dinheiro e receba em casa com agilidade e segurança!</p>
-            <a href="#cardapio" class="btn-primary">Ver Cardápio</a>
+            <h1>A Melhor Experiência de Curuá</h1>
+            <p>Pizzas artesanais, lanches suculentos e bebidas geladas. Faça seu pedido e pague direto no PIX pelo site!</p>
+            <a href="#cardapio" class="btn-primary">Fazer Meu Pedido</a>
         </div>
     </section>
 
-    <!-- CARDÁPIO DIGITAL -->
+    <!-- CARDÁPIO DIGITAL COM FILTROS -->
     <section class="menu-section" id="cardapio">
         <div class="section-title">
-            <span>Prontas para o Forno</span>
+            <span>Para todos os gostos</span>
             <h2 class="serif">Nosso Cardápio</h2>
         </div>
+        
+        <div class="filters">
+            <button class="filter-btn active" data-filter="Todos">Todos</button>
+            <button class="filter-btn" data-filter="Pizzas">🍕 Pizzas</button>
+            <button class="filter-btn" data-filter="Lanches">🍔 Lanches</button>
+            <button class="filter-btn" data-filter="Bebidas">🍻 Bebidas</button>
+        </div>
+
         <div class="menu-grid" id="menu-container">
-            <div class="loader"><i class="fa-solid fa-spinner fa-spin"></i> Carregando cardápio...</div>
+            <div class="loader"><i class="fa-solid fa-spinner fa-spin"></i> Preparando as imagens do cardápio...</div>
         </div>
     </section>
 
-    <!-- CARRINHO E CHECKOUT CORRIGIDO -->
+    <!-- CARRINHO E CHECKOUT PIX -->
     <div class="cart-sidebar" id="cart-sidebar">
         <div class="cart-header">
             <h3><i class="fa-solid fa-basket-shopping"></i> Seu Pedido</h3>
             <i class="fa-solid fa-xmark close-cart" id="btn-close-cart"></i>
         </div>
         <div class="cart-content-area">
-            <!-- Tela 1: Lista do Carrinho -->
+            
             <div id="cart-view">
-                <div class="cart-items" id="cart-items-container">
-                    <!-- Os itens entram aqui -->
-                </div>
-                <div class="empty-cart" id="empty-msg">O carrinho está vazio. Escolha uma pizza!</div>
+                <div class="cart-items" id="cart-items-container"></div>
+                <div class="empty-cart" id="empty-msg">O carrinho está vazio.<br>Escolha uma delícia!</div>
             </div>
             
-            <!-- Tela 2: Finalizar Pagamento -->
             <div id="checkout-view" class="checkout-area">
                 <h4 style="margin-bottom: 15px; color: var(--secondary);"><i class="fa-solid fa-motorcycle"></i> Dados de Entrega</h4>
                 <div class="checkout-group">
@@ -223,10 +236,10 @@
                     </label>
                 </div>
 
-                <!-- GERADOR DE PIX -->
+                <!-- ÁREA DO QR CODE GERADO VIA JS -->
                 <div class="pix-area" id="pix-area">
                     <h4 style="color: var(--pix); margin-bottom: 10px;">Escaneie para Pagar</h4>
-                    <img id="pix-qr-code" src="" alt="QR Code Pix">
+                    <div id="qrcode-container"></div>
                     <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0;">Ou copie a chave abaixo:</p>
                     <div class="pix-code" id="pix-copy-text">Gerando chave...</div>
                     <button class="btn-copy-pix" id="btn-copy-pix-action"><i class="fa-regular fa-copy"></i> Copiar Código PIX</button>
@@ -238,17 +251,17 @@
         <div class="cart-footer">
             <div class="cart-total"><span>Total:</span><span id="cart-total-value">R$ 0,00</span></div>
             <button class="btn-checkout" id="btn-goto-checkout">Avançar para Pagamento <i class="fa-solid fa-arrow-right"></i></button>
-            <button class="btn-confirm-order" id="btn-confirm-order"><i class="fa-brands fa-whatsapp"></i> Enviar Pedido (WhatsApp)</button>
+            <button class="btn-confirm-order" id="btn-confirm-order"><i class="fa-brands fa-whatsapp"></i> Enviar Pedido e Comprovante</button>
         </div>
     </div>
 
-    <!-- TELA DE LOGIN MODERNA (NOVO) -->
+    <!-- TELA DE LOGIN MODERNA -->
     <div class="login-overlay" id="login-modal">
         <div class="login-box">
             <i class="fa-solid fa-xmark login-close" id="btn-close-login"></i>
             <i class="fa-solid fa-fingerprint login-icon"></i>
-            <h3>Acesso Restrito</h3>
-            <p>Insira a senha do proprietário para gerenciar o cardápio e pagamentos.</p>
+            <h3>Acesso do Proprietário</h3>
+            <p>Insira a senha mestra para gerenciar produtos, preços e chave PIX do restaurante.</p>
             <input type="password" id="login-password" class="login-input" placeholder="••••••••">
             <button class="login-btn" id="btn-submit-login">Desbloquear Painel</button>
         </div>
@@ -257,7 +270,7 @@
     <!-- FOOTER & ADMIN LOCK -->
     <footer>
         <div style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--primary);">GF Pizzaria</div>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top:10px;">&copy; 2026 GF Pizzaria - Sistema de Pedidos.</p>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top:10px;">&copy; 2026 GF Pizzaria - O melhor sabor da cidade.</p>
         <i class="fa-solid fa-lock admin-lock" id="btn-open-login" title="Acesso do Dono"></i>
     </footer>
 
@@ -268,27 +281,32 @@
             <i class="fa-solid fa-xmark" id="btn-close-admin" style="cursor: pointer; color: #fff; font-size: 1.5rem;"></i>
         </div>
         
-        <h4 style="margin-bottom: 10px; color: var(--primary);">1. Configurações PIX e WhatsApp</h4>
+        <h4 style="margin-bottom: 10px; color: var(--primary);">1. Dados Financeiros (PIX e WhatsApp)</h4>
         <label style="display:block; font-size:0.85rem; color: #ccc;">Sua Chave PIX (Telefone, CPF, Email):</label>
         <input type="text" id="admin-pix-key" class="input-admin" placeholder="Ex: 5593991234567">
         
         <label style="display:block; font-size:0.85rem; color: #ccc;">Nome do Titular do PIX (Sem acentos):</label>
-        <input type="text" id="admin-pix-name" class="input-admin" placeholder="Ex: Joao da Silva">
+        <input type="text" id="admin-pix-name" class="input-admin" placeholder="Ex: Joao Silva">
         
-        <label style="display:block; font-size:0.85rem; color: #ccc;">Cidade da Conta:</label>
+        <label style="display:block; font-size:0.85rem; color: #ccc;">Cidade da Conta PIX:</label>
         <input type="text" id="admin-pix-city" class="input-admin" placeholder="Ex: Curua">
         
         <label style="display:block; font-size:0.85rem; color: #ccc;">WhatsApp para receber os pedidos:</label>
         <input type="text" id="admin-wa" class="input-admin" placeholder="Ex: 5593991234567">
         
-        <button class="btn-save-admin" id="btn-save-settings">Salvar Configurações</button>
+        <button class="btn-save-admin" id="btn-save-settings">Salvar Configurações Gerais</button>
         
         <hr style="border:0; border-top: 1px solid var(--border); margin: 30px 0;">
         
-        <h4 style="margin-bottom: 15px; color: var(--primary);">2. Adicionar Pizza ao Cardápio</h4>
-        <input type="text" id="add-name" placeholder="Nome da Pizza (Ex: Calabresa)" class="input-admin">
-        <input type="text" id="add-desc" placeholder="Ingredientes (Ex: Queijo, tomate...)" class="input-admin">
-        <input type="number" id="add-price" placeholder="Preço (Ex: 35.90)" step="0.01" class="input-admin">
+        <h4 style="margin-bottom: 15px; color: var(--primary);">2. Adicionar Item ao Cardápio</h4>
+        <select id="add-cat" class="input-admin" style="margin-bottom: 10px;">
+            <option value="Pizzas">🍕 Pizza</option>
+            <option value="Lanches">🍔 Lanche / Porção</option>
+            <option value="Bebidas">🍻 Bebida</option>
+        </select>
+        <input type="text" id="add-name" placeholder="Nome (Ex: X-Bacon)" class="input-admin" style="margin-bottom: 10px;">
+        <input type="text" id="add-desc" placeholder="Ingredientes (Ex: Pão, carne, bacon...)" class="input-admin" style="margin-bottom: 10px;">
+        <input type="number" id="add-price" placeholder="Preço (Ex: 22.50)" step="0.01" class="input-admin">
         
         <button class="btn-save-admin" id="btn-save-product" style="background: var(--secondary); color: #000;">+ Adicionar Produto</button>
     </div>
@@ -297,7 +315,7 @@
     <input type="file" id="image-uploader" style="display: none;" accept="image/*">
 
     <!-- =========================================================================================
-         JAVASCRIPT & FIREBASE LOGIC (TOTALMENTE CORRIGIDO)
+         FIREBASE & JAVASCRIPT
          ========================================================================================= -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -320,7 +338,7 @@
         const db = getDatabase(app);
         const storage = getStorage(app);
 
-        // ESTADO GLOBAL DO SISTEMA
+        // ESTADO GLOBAL
         let cart = [];
         let cartTotalValue = 0;
         let selectedPayMethod = "";
@@ -334,7 +352,7 @@
         let pixCity = "Curua";
         const SENHA_ADMIN = 'admin123';
 
-        // ELEMENTOS DO DOM (Buscados 1x por performance)
+        // DOM ELEMENTS
         const cartSidebar = document.getElementById('cart-sidebar');
         const cartItemsContainer = document.getElementById('cart-items-container');
         const emptyMsg = document.getElementById('empty-msg');
@@ -344,6 +362,29 @@
         const checkoutView = document.getElementById('checkout-view');
         const btnGotoCheckout = document.getElementById('btn-goto-checkout');
         const btnConfirmOrder = document.getElementById('btn-confirm-order');
+
+        /* ================= POPULAR BANCO AUTOMATICAMENTE (INJEÇÃO DE IMAGENS REAIS) ================= */
+        async function autoPopulateDatabase() {
+            showLoading("Montando o site com imagens reais (Aguarde)...");
+            const richCatalog = [
+                { categoria: "Pizzas", nome: "Pizza Calabresa Especial", descricao: "Massa fina crocante, molho de tomate fresco, muita muçarela, calabresa e cebola.", preco: 35.00, imagemUrl: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=600" },
+                { categoria: "Pizzas", nome: "Pizza Marguerita Tradicional", descricao: "Muçarela derretida, rodelas de tomate fresco, manjericão e aquele toque de azeite.", preco: 32.00, imagemUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600" },
+                { categoria: "Pizzas", nome: "Pizza Frango c/ Catupiry", descricao: "Frango desfiado temperadinho, coberto com legítimo requeijão Catupiry e azeitonas.", preco: 38.00, imagemUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600" },
+                { categoria: "Lanches", nome: "Play Burger Duplo Bacon", descricao: "Dois blends bovinos 180g, queijo cheddar duplo, muito bacon crocante e molho especial.", preco: 28.50, imagemUrl: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=600" },
+                { categoria: "Lanches", nome: "Porção de Batata Suprema", descricao: "Batata frita super crocante, coberta com cheddar derretido e pedaços de bacon.", preco: 22.00, imagemUrl: "https://images.unsplash.com/photo-1576107222485-6bf01140954b?auto=format&fit=crop&w=600" },
+                { categoria: "Bebidas", nome: "Refrigerante Coca-Cola 2L", descricao: "Refrigerante Coca-Cola original 2 Litros bem gelado.", preco: 14.00, imagemUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=600" },
+                { categoria: "Bebidas", nome: "Cerveja Heineken Long Neck", descricao: "Cerveja Premium Heineken 330ml estalando de gelada.", preco: 8.50, imagemUrl: "https://images.unsplash.com/photo-1614316310260-155e78393c83?auto=format&fit=crop&w=600" }
+            ];
+            
+            try {
+                for (let item of richCatalog) {
+                    await push(dbRef(db, 'produtos'), item);
+                }
+                hideLoading();
+            } catch (e) {
+                hideLoading(); console.error("Erro ao injetar catálogo inicial:", e);
+            }
+        }
 
         /* ================= INICIALIZAÇÃO ================= */
         async function loadSettings() {
@@ -356,22 +397,18 @@
                     pixName = data.pixName || "";
                     pixCity = data.pixCity || "Curua";
                 }
-            } catch(e) { console.error("Erro ao puxar configs."); }
+            } catch(e) {}
         }
 
         async function loadMenu() {
             const container = document.getElementById('menu-container');
             try {
                 const snapshot = await get(dbRef(db, 'produtos'));
+                
+                // Se o banco estiver totalmente vazio, preenche automaticamente e recarrega.
                 if (!snapshot.exists()) {
-                    container.innerHTML = `
-                        <div class="loader">
-                            <p>O cardápio está vazio.</p>
-                            <button class="btn-seed" id="btn-seed-db">Criar Cardápio de Exemplo</button>
-                        </div>`;
-                    
-                    // Adiciona evento ao botão de semente
-                    document.getElementById('btn-seed-db')?.addEventListener('click', seedDatabase);
+                    await autoPopulateDatabase();
+                    await loadMenu(); // Recarrega com os dados que acabou de injetar
                     return;
                 }
 
@@ -379,13 +416,16 @@
                 snapshot.forEach((child) => {
                     const data = child.val();
                     const prodId = child.key;
+                    const cat = data.categoria || "Pizzas";
                     const imgUrl = data.imagemUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600";
                     const preco = parseFloat(data.preco).toFixed(2).replace('.', ',');
 
                     const div = document.createElement('div');
                     div.className = 'menu-item';
+                    div.setAttribute('data-categoria', cat);
                     div.innerHTML = `
                         <div class="menu-img-wrapper">
+                            <span class="cat-badge">${cat}</span>
                             <button class="admin-delete-btn" data-id="${prodId}"><i class="fa-solid fa-trash"></i></button>
                             <button class="admin-edit-img" data-id="${prodId}"><i class="fa-solid fa-camera"></i> Mudar Foto</button>
                             <img src="${imgUrl}" alt="${data.nome}">
@@ -402,11 +442,10 @@
                     container.appendChild(div);
                 });
 
-                // Anexar Eventos nos Botões Dinâmicos (Evita erros de escopo)
+                // Adiciona Eventos dos botões Dinamicamente
                 document.querySelectorAll('.btn-add').forEach(btn => {
                     btn.addEventListener('click', (e) => {
-                        const target = e.currentTarget;
-                        addToCart(target.getAttribute('data-nome'), parseFloat(target.getAttribute('data-preco')));
+                        addToCart(e.currentTarget.getAttribute('data-nome'), parseFloat(e.currentTarget.getAttribute('data-preco')));
                     });
                 });
                 document.querySelectorAll('.admin-delete-btn').forEach(btn => {
@@ -416,24 +455,38 @@
                     btn.addEventListener('click', (e) => triggerUpload(e.currentTarget.getAttribute('data-id')));
                 });
 
+                // Aplica filtro ativo (caso tenha clicado antes de carregar)
+                applyCurrentFilter();
+
             } catch (error) {
-                container.innerHTML = `<div class="loader" style="color:red;">Erro ao carregar o banco.</div>`;
+                container.innerHTML = `<div class="loader" style="color:red;">Erro ao carregar o banco. Aperte F5.</div>`;
             }
         }
 
         window.onload = async () => { await loadSettings(); await loadMenu(); };
 
-        /* ================= CARREGAR CARDÁPIO MÁGICO ================= */
-        async function seedDatabase() {
-            showLoading("Criando Pizzas...");
-            const pizzasIniciais = [
-                {nome: "Calabresa Especial", descricao: "Massa fina, molho, muçarela, calabresa.", preco: 35.00, imagemUrl: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=600"},
-                {nome: "Marguerita Tradicional", descricao: "Muçarela, rodelas de tomate e manjericão.", preco: 32.00, imagemUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600"}
-            ];
-            try {
-                for(let p of pizzasIniciais) await push(dbRef(db, 'produtos'), p);
-                hideLoading(); showToast("Cardápio Criado!"); await loadMenu(); 
-            } catch(e) { hideLoading(); alert("Erro ao criar."); }
+        /* ================= SISTEMA DE FILTROS ================= */
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        let currentFilter = "Todos";
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                currentFilter = e.currentTarget.getAttribute('data-filter');
+                applyCurrentFilter();
+            });
+        });
+
+        function applyCurrentFilter() {
+            const items = document.querySelectorAll('.menu-item');
+            items.forEach(item => {
+                if(currentFilter === "Todos" || item.getAttribute('data-categoria') === currentFilter) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
         }
 
         /* ================= LÓGICA DO CARRINHO ================= */
@@ -445,7 +498,6 @@
         function toggleCart() {
             cartSidebar.classList.toggle('open');
             if(cartSidebar.classList.contains('open')) {
-                // Reseta a visão para a lista do carrinho sempre que abre
                 cartView.style.display = 'block';
                 checkoutView.style.display = 'none';
                 btnGotoCheckout.style.display = 'flex';
@@ -456,7 +508,7 @@
         function addToCart(name, price) {
             cart.push({ name, price });
             updateCart();
-            showToast("Item adicionado!");
+            showToast("Adicionado!");
         }
 
         function removeCart(index) {
@@ -486,7 +538,6 @@
                     cartItemsContainer.appendChild(div);
                 });
                 
-                // Atacha evento de remover
                 document.querySelectorAll('.remove-btn').forEach(btn => {
                     btn.addEventListener('click', (e) => removeCart(parseInt(e.currentTarget.getAttribute('data-index'))));
                 });
@@ -495,7 +546,7 @@
             cartBadge.innerText = cart.length;
         }
 
-        /* ================= LÓGICA DE CHECKOUT E PAGAMENTO PIX ================= */
+        /* ================= LÓGICA DE CHECKOUT E NOVO PAGAMENTO PIX (QRCODE.JS) ================= */
         function proceedToCheckout() {
             if(cart.length === 0) { alert("Adicione um item primeiro!"); return; }
             cartView.style.display = 'none';
@@ -504,13 +555,13 @@
             btnConfirmOrder.style.display = 'flex';
         }
 
-        // Lógica dos botões de pagamento
         const payBtns = {
             'PIX': document.getElementById('btn-pay-pix'),
             'Cartão': document.getElementById('btn-pay-card'),
             'Dinheiro': document.getElementById('btn-pay-money')
         };
         const pixArea = document.getElementById('pix-area');
+        const qrcodeContainer = document.getElementById('qrcode-container');
 
         Object.keys(payBtns).forEach(method => {
             payBtns[method].addEventListener('click', () => {
@@ -520,13 +571,25 @@
                 
                 if (method === 'PIX') {
                     if (!pixKey || !pixName) {
-                        alert("O proprietário ainda não configurou o PIX no painel administrativo!");
+                        alert("O proprietário ainda não configurou o PIX no painel!");
                         pixArea.style.display = 'none';
                         return;
                     }
+                    
                     generatedPixPayload = buildPixPayload(pixKey, pixName, pixCity, cartTotalValue);
                     document.getElementById('pix-copy-text').innerText = generatedPixPayload;
-                    document.getElementById('pix-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedPixPayload)}`;
+                    
+                    // GERA O QR CODE NATIVAMENTE (SEM FALHAS)
+                    qrcodeContainer.innerHTML = ""; // Limpa anterior
+                    new QRCode(qrcodeContainer, {
+                        text: generatedPixPayload,
+                        width: 180,
+                        height: 180,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.M
+                    });
+
                     pixArea.style.display = 'block';
                 } else {
                     pixArea.style.display = 'none';
@@ -543,14 +606,14 @@
             const name = document.getElementById('c-name').value.trim();
             const address = document.getElementById('c-address').value.trim();
 
-            if(!name || !address) { alert("Por favor, preencha seu Nome e Endereço!"); return; }
-            if(selectedPayMethod === "") { alert("Por favor, selecione uma Forma de Pagamento!"); return; }
+            if(!name || !address) { alert("Por favor, preencha Nome e Endereço!"); return; }
+            if(selectedPayMethod === "") { alert("Selecione uma Forma de Pagamento!"); return; }
 
-            let msg = `*NOVO PEDIDO (SITE) - GF PIZZARIA*%0A%0A*Cliente:* ${name}%0A*Endereço:* ${address}%0A%0A*RESUMO:*%0A`;
+            let msg = `*NOVO PEDIDO - GF PIZZARIA*%0A%0A*Cliente:* ${name}%0A*Endereço:* ${address}%0A%0A*RESUMO:*%0A`;
             cart.forEach(item => { msg += `▪️ ${item.name} - R$ ${item.price.toFixed(2).replace('.',',')}%0A`; });
             msg += `%0A*TOTAL: R$ ${cartTotalValue.toFixed(2).replace('.',',')}*%0A*Pagamento:* ${selectedPayMethod}%0A%0A`;
             
-            if(selectedPayMethod === 'PIX') { msg += `_Aviso: Cliente selecionou PIX pelo site. Confirme o recebimento._`; }
+            if(selectedPayMethod === 'PIX') { msg += `_Aviso: Pagamento via PIX selecionado. Estou enviando o comprovante!_`; }
             
             window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
             cart = []; updateCart(); toggleCart();
@@ -559,7 +622,7 @@
             pixArea.style.display = 'none'; selectedPayMethod = "";
         }
 
-        /* GERADOR DE PIX OFICIAL (BR CODE) */
+        /* GERADOR DE PIX OFICIAL DO BACEN */
         function buildPixPayload(key, name, city, amount) {
             const cleanStr = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9 ]/g, "").toUpperCase();
             name = cleanStr(name).substring(0,25);
@@ -581,7 +644,7 @@
             return payload + crc;
         }
 
-        /* ================= TELA DE LOGIN MODERNA E ADMIN ================= */
+        /* ================= TELA DE LOGIN E ADMIN ================= */
         const loginModal = document.getElementById('login-modal');
         const adminPanel = document.getElementById('admin-panel');
 
@@ -595,7 +658,7 @@
                 loginModal.classList.remove('show');
                 document.getElementById('login-password').value = '';
                 
-                isEditing = true; document.body.classList.add('is-editing');
+                document.body.classList.add('is-editing');
                 adminPanel.classList.add('show');
                 
                 document.getElementById('admin-wa').value = waNumber;
@@ -611,7 +674,7 @@
         });
 
         document.getElementById('btn-save-settings').addEventListener('click', async () => {
-            showLoading("Salvando Configurações...");
+            showLoading("Salvando...");
             const num = document.getElementById('admin-wa').value.replace(/\D/g, '');
             const pKey = document.getElementById('admin-pix-key').value.trim();
             const pName = document.getElementById('admin-pix-name').value.trim();
@@ -620,13 +683,14 @@
             try {
                 await set(dbRef(db, 'settings/geral'), { waNumber: num, pixKey: pKey, pixName: pName, pixCity: pCity });
                 waNumber = num; pixKey = pKey; pixName = pName; pixCity = pCity;
-                isEditing = false; document.body.classList.remove('is-editing');
+                document.body.classList.remove('is-editing');
                 adminPanel.classList.remove('show');
-                hideLoading(); showToast("Configurações Salvas!");
+                hideLoading(); showToast("Salvo!");
             } catch (e) { hideLoading(); alert("Erro ao salvar."); }
         });
 
         document.getElementById('btn-save-product').addEventListener('click', async () => {
+            const cat = document.getElementById('add-cat').value;
             const nome = document.getElementById('add-name').value;
             const desc = document.getElementById('add-desc').value;
             const preco = parseFloat(document.getElementById('add-price').value);
@@ -635,20 +699,20 @@
 
             showLoading("Salvando...");
             try {
-                await push(dbRef(db, 'produtos'), { nome, descricao: desc, preco, imagemUrl: "" });
+                await push(dbRef(db, 'produtos'), { categoria: cat, nome, descricao: desc, preco, imagemUrl: "" });
                 document.getElementById('add-name').value = '';
                 document.getElementById('add-desc').value = '';
                 document.getElementById('add-price').value = '';
-                hideLoading(); showToast("Pizza Adicionada!"); await loadMenu(); 
+                hideLoading(); showToast("Produto Adicionado!"); await loadMenu(); 
             } catch (e) { hideLoading(); alert("Erro ao salvar."); }
         });
 
         async function deleteProduct(id) {
-            if(confirm("Apagar pizza do cardápio?")) {
+            if(confirm("Apagar item do cardápio?")) {
                 showLoading("Apagando...");
                 try {
                     await remove(dbRef(db, 'produtos/' + id));
-                    hideLoading(); showToast("Apagada com sucesso!"); await loadMenu(); 
+                    hideLoading(); showToast("Apagado!"); await loadMenu(); 
                 } catch(e) { hideLoading(); alert("Erro ao apagar."); }
             }
         }
@@ -668,14 +732,14 @@
                 const downloadURL = await getDownloadURL(sRef);
                 
                 await update(dbRef(db, 'produtos/' + currentUploadingId), { imagemUrl: downloadURL });
-                hideLoading(); showToast("Foto salva com sucesso!"); await loadMenu(); 
+                hideLoading(); showToast("Foto salva!"); await loadMenu(); 
             } catch (error) {
                 hideLoading(); alert("Erro ao enviar foto. Verifique as regras do Storage no Firebase!");
             }
             uploader.value = ''; 
         });
 
-        /* FUNÇÕES DE UI / FEEDBACK */
+        /* FUNÇÕES GERAIS */
         function showToast(msg) {
             const toast = document.getElementById('toast-msg');
             toast.innerHTML = `<i class="fa-solid fa-check-circle"></i> ${msg}`; 
