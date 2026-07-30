@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GF Pizzaria | Sistema de Pedidos e PIX</title>
+    <title>GF Pizzaria | Cardápio Digital</title>
 
+    <!-- Fontes e Ícones -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
@@ -16,102 +17,133 @@
             --primary: #D32F2F; --primary-hover: #B71C1C; --secondary: #FBC02D; 
             --bg-body: #1E1A1D; --bg-card: #2A2427; --text-light: #F5F1E7; 
             --text-muted: #BCAAA4; --success: #25D366; --pix: #32BCAD;
-            --border: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.1);
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Montserrat', sans-serif; scroll-behavior: smooth; }
         body { background-color: var(--bg-body); color: var(--text-light); overflow-x: hidden; }
         h1, h2, h3, .serif { font-family: 'Playfair Display', serif; }
+        a { text-decoration: none; color: inherit; }
         button { cursor: pointer; border: none; background: none; outline: none; font-family: 'Montserrat', sans-serif; }
 
         /* HEADER */
-        header { position: fixed; top: 0; width: 100%; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; background: rgba(30, 26, 29, 0.95); backdrop-filter: blur(8px); z-index: 1000; border-bottom: 1px solid var(--border); }
+        header { position: fixed; top: 0; width: 100%; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; background: rgba(30, 26, 29, 0.95); backdrop-filter: blur(10px); z-index: 1000; border-bottom: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.3);}
         .logo { font-size: 1.8rem; font-weight: 700; color: var(--text-light); display: flex; align-items: center; gap: 10px; }
         .logo i, .logo span { color: var(--primary); font-family: 'Playfair Display', serif;}
         .cart-icon { position: relative; font-size: 1.5rem; cursor: pointer; background: rgba(255,255,255,0.05); width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; border: 1px solid var(--border); transition: 0.3s; }
         .cart-icon:hover { background: var(--primary); border-color: var(--primary); }
-        .cart-badge { position: absolute; top: -5px; right: -5px; background: var(--secondary); color: #000; font-size: 0.8rem; font-weight: 700; width: 22px; height: 22px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+        .cart-badge { position: absolute; top: -5px; right: -5px; background: var(--secondary); color: #000; font-size: 0.8rem; font-weight: 800; width: 22px; height: 22px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
 
         /* HERO */
         .hero { height: 90vh; display: flex; align-items: center; justify-content: center; text-align: center; position: relative; margin-top: 70px; }
         .hero-bg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(30, 26, 29, 1)), url('https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=1920') center/cover; z-index: -1; }
         .hero-content { max-width: 800px; padding: 0 20px; }
-        .hero h1 { font-size: 4rem; margin-bottom: 15px; }
-        .hero p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 30px; }
-        .btn-primary { background: var(--primary); color: white; padding: 15px 35px; border-radius: 30px; font-weight: 600; display: inline-block; transition: 0.3s; text-decoration: none;}
+        .hero h1 { font-size: 4.5rem; margin-bottom: 15px; text-shadow: 2px 4px 10px rgba(0,0,0,0.5);}
+        .hero p { font-size: 1.2rem; color: var(--text-muted); margin-bottom: 30px; line-height: 1.6;}
+        .btn-primary { background: var(--primary); color: white; padding: 15px 40px; border-radius: 30px; font-weight: 600; display: inline-block; transition: 0.3s; font-size: 1.1rem; box-shadow: 0 5px 15px rgba(211, 47, 47, 0.4);}
         .btn-primary:hover { background: var(--primary-hover); transform: translateY(-3px); }
 
         /* MENU E PRODUTOS */
         .menu-section { padding: 80px 5%; background: #181517; min-height: 500px;}
         .section-title { text-align: center; margin-bottom: 50px; }
-        .section-title span { color: var(--primary); font-weight: 600; text-transform: uppercase; font-size: 0.9rem;}
+        .section-title span { color: var(--primary); font-weight: 600; text-transform: uppercase; font-size: 0.9rem; letter-spacing: 2px;}
         .section-title h2 { font-size: 2.8rem; margin-top: 10px; }
         .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 25px; max-width: 1200px; margin: 0 auto; }
         .menu-item { background: var(--bg-card); border-radius: 15px; overflow: hidden; border: 1px solid var(--border); transition: 0.3s; position: relative;}
-        .menu-item:hover { border-color: var(--primary); transform: translateY(-5px); }
-        .menu-img-wrapper { height: 220px; position: relative; }
-        .menu-img-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+        .menu-item:hover { border-color: var(--primary); transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.5);}
+        .menu-img-wrapper { height: 220px; position: relative; overflow: hidden;}
+        .menu-img-wrapper img { width: 100%; height: 100%; object-fit: cover; transition: 0.4s;}
+        .menu-item:hover .menu-img-wrapper img { transform: scale(1.05); }
         .admin-edit-img { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: white; padding: 8px 12px; border-radius: 5px; font-size: 0.85rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed var(--secondary);}
         .admin-delete-btn { position: absolute; top: 10px; left: 10px; background: rgba(211, 47, 47, 0.9); color: white; padding: 8px 12px; border-radius: 5px; font-size: 0.85rem; cursor: pointer; display: none; z-index: 10; border: 1px dashed white;}
-        .menu-details { padding: 20px; }
+        .menu-details { padding: 25px; }
         .menu-name { font-size: 1.3rem; font-weight: 600; margin-bottom: 8px; }
         .menu-desc { color: var(--text-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 20px; min-height: 40px; }
         .menu-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border); padding-top: 15px;}
         .menu-price { font-size: 1.4rem; font-weight: 700; color: var(--secondary); }
         .btn-add { background: var(--primary); color: white; width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.2rem; transition: 0.3s; }
-        .btn-add:hover { background: var(--primary-hover); transform: scale(1.1); }
+        .btn-add:hover { background: var(--primary-hover); transform: scale(1.1); box-shadow: 0 0 15px rgba(211, 47, 47, 0.6);}
         
-        /* Loading e Seed */
         .loader { text-align: center; padding: 50px; color: var(--text-muted); font-size: 1.2rem; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 20px;}
         .btn-seed { background: var(--secondary); color: #000; padding: 15px 30px; border-radius: 30px; font-weight: bold; cursor: pointer; transition: 0.3s; font-size: 1rem;}
         .btn-seed:hover { transform: scale(1.05); }
 
-        /* CARRINHO E CHECKOUT */
-        .cart-sidebar { position: fixed; top: 0; right: -450px; width: 100%; max-width: 450px; height: 100vh; background: var(--bg-card); border-left: 1px solid var(--border); z-index: 2000; transition: 0.4s ease; display: flex; flex-direction: column; box-shadow: -5px 0 20px rgba(0,0,0,0.5); }
+        /* === SISTEMA DE LOGIN NOVO (LINDO E MODERNO) === */
+        .login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px); z-index: 9999; display: none; justify-content: center; align-items: center; opacity: 0; transition: 0.3s;}
+        .login-overlay.show { display: flex; opacity: 1; }
+        .login-box { background: var(--bg-card); padding: 40px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); box-shadow: 0 20px 50px rgba(0,0,0,0.9); text-align: center; position: relative; transform: translateY(20px); transition: 0.3s;}
+        .login-overlay.show .login-box { transform: translateY(0); }
+        .login-close { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: var(--text-muted); cursor: pointer; transition: 0.3s; }
+        .login-close:hover { color: white; }
+        .login-icon { font-size: 3rem; color: var(--primary); margin-bottom: 20px; }
+        .login-box h3 { font-size: 1.8rem; margin-bottom: 10px; color: var(--text-light); }
+        .login-box p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 25px; }
+        .login-input { width: 100%; background: #111; color: white; border: 2px solid var(--border); padding: 15px; border-radius: 10px; font-size: 1.1rem; text-align: center; margin-bottom: 20px; letter-spacing: 2px; transition: 0.3s;}
+        .login-input:focus { border-color: var(--primary); outline: none; }
+        .login-btn { width: 100%; background: var(--primary); color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: 700; transition: 0.3s; }
+        .login-btn:hover { background: var(--primary-hover); transform: translateY(-2px); }
+
+        /* === CARRINHO E CHECKOUT CORRIGIDO === */
+        .cart-sidebar { position: fixed; top: 0; right: -450px; width: 100%; max-width: 450px; height: 100vh; background: var(--bg-card); border-left: 1px solid var(--border); z-index: 2000; transition: right 0.4s cubic-bezier(0.77, 0, 0.175, 1); display: flex; flex-direction: column; box-shadow: -5px 0 30px rgba(0,0,0,0.6); }
         .cart-sidebar.open { right: 0; }
-        .cart-header { padding: 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-        .close-cart { font-size: 1.5rem; cursor: pointer; color: var(--text-muted); }
+        .cart-header { padding: 25px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .cart-header h3 { font-size: 1.4rem; display: flex; align-items: center; gap: 10px;}
+        .close-cart { font-size: 1.5rem; cursor: pointer; color: var(--text-muted); transition: 0.3s;}
+        .close-cart:hover { color: var(--primary); transform: rotate(90deg);}
+        
         .cart-content-area { flex: 1; overflow-y: auto; padding: 20px; }
         .cart-items { display: flex; flex-direction: column; gap: 15px; }
-        .empty-cart { text-align: center; color: var(--text-muted); margin-top: 40px; }
-        .cart-item { background: var(--bg-body); padding: 15px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .cart-item-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 5px; }
-        .cart-item-price { color: var(--secondary); font-weight: 700; }
-        .remove-btn { color: var(--primary); cursor: pointer; font-size: 1.2rem; }
+        .empty-cart { text-align: center; color: var(--text-muted); margin-top: 50px; font-size: 1.1rem;}
         
-        .checkout-area { display: none; }
+        .cart-item { background: var(--bg-body); padding: 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border);}
+        .cart-item-title { font-weight: 600; font-size: 1rem; margin-bottom: 5px; }
+        .cart-item-price { color: var(--secondary); font-weight: 700; }
+        .remove-btn { color: var(--primary); cursor: pointer; font-size: 1.3rem; padding: 5px; transition: 0.2s;}
+        .remove-btn:hover { color: var(--primary-hover); transform: scale(1.1);}
+        
+        .checkout-area { display: none; animation: fadeIn 0.3s; }
         .checkout-group { margin-bottom: 20px; }
         .checkout-group label { display: block; margin-bottom: 8px; font-size: 0.9rem; color: var(--text-muted); }
-        .checkout-group input { width: 100%; background: var(--bg-body); border: 1px solid var(--border); color: white; padding: 12px; border-radius: 8px; }
-        .payment-options { display: grid; gap: 10px; }
-        .pay-option { background: var(--bg-body); border: 1px solid var(--border); padding: 12px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: 0.2s;}
-        .pay-option:hover, .pay-option.selected { border-color: var(--secondary); background: rgba(251, 192, 45, 0.1); }
+        .checkout-group input { width: 100%; background: var(--bg-body); border: 1px solid var(--border); color: white; padding: 15px; border-radius: 10px; font-family: 'Montserrat'; font-size: 1rem; transition: 0.3s;}
+        .checkout-group input:focus { border-color: var(--secondary); outline: none;}
         
-        /* Area do PIX Gerado */
-        .pix-area { display: none; background: var(--bg-body); padding: 20px; border-radius: 8px; border: 1px dashed var(--pix); text-align: center; margin-top: 15px;}
-        .pix-area img { width: 180px; height: 180px; margin-bottom: 15px; border-radius: 10px; background: white; padding: 5px;}
-        .pix-code { background: #111; padding: 12px; border-radius: 5px; font-family: monospace; font-size: 0.8rem; color: var(--pix); word-break: break-all; margin-bottom: 10px;}
-        .btn-copy-pix { background: var(--pix); color: #000; padding: 10px; width: 100%; border-radius: 5px; font-weight: bold; cursor: pointer; margin-bottom: 10px;}
+        .payment-options { display: grid; gap: 10px; margin-bottom: 20px;}
+        .pay-option { background: var(--bg-body); border: 1px solid var(--border); padding: 15px; border-radius: 10px; cursor: pointer; display: flex; align-items: center; gap: 12px; transition: 0.2s; font-weight: 500;}
+        .pay-option:hover, .pay-option.selected { border-color: var(--secondary); background: rgba(251, 192, 45, 0.1); color: var(--secondary);}
         
-        .cart-footer { padding: 20px; border-top: 1px solid var(--border); background: var(--bg-body); }
-        .cart-total { display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; }
-        .btn-checkout, .btn-confirm-order { width: 100%; background: var(--primary); color: white; padding: 15px; border-radius: 10px; font-size: 1.1rem; font-weight: 600; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.3s;}
-        .btn-confirm-order { display: none; background: var(--success); }
+        /* Area do PIX */
+        .pix-area { display: none; background: #111; padding: 20px; border-radius: 12px; border: 1px dashed var(--pix); text-align: center; margin-top: 15px; animation: fadeIn 0.3s;}
+        .pix-area img { width: 180px; height: 180px; margin-bottom: 15px; border-radius: 10px; background: white; padding: 10px;}
+        .pix-code { background: #000; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 0.85rem; color: var(--pix); word-break: break-all; margin-bottom: 15px; border: 1px solid rgba(50, 188, 173, 0.3);}
+        .btn-copy-pix { background: var(--pix); color: #000; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.3s;}
+        .btn-copy-pix:hover { background: #26998c; transform: translateY(-2px);}
+        
+        .cart-footer { padding: 25px; border-top: 1px solid var(--border); background: var(--bg-body); }
+        .cart-total { display: flex; justify-content: space-between; font-size: 1.5rem; font-weight: 700; margin-bottom: 20px; }
+        .btn-checkout, .btn-confirm-order { width: 100%; background: var(--primary); color: white; padding: 18px; border-radius: 12px; font-size: 1.1rem; font-weight: 700; display: flex; justify-content: center; align-items: center; gap: 10px; transition: 0.3s; box-shadow: 0 4px 15px rgba(211, 47, 47, 0.4);}
+        .btn-confirm-order { display: none; background: var(--success); box-shadow: 0 4px 15px rgba(37, 211, 102, 0.4);}
+        .btn-checkout:hover, .btn-confirm-order:hover { transform: translateY(-3px); }
 
         /* FOOTER & ADMIN */
         footer { background: #110E10; padding: 50px 5% 20px; text-align: center; border-top: 1px solid var(--border); position: relative; }
-        .admin-lock { position: absolute; bottom: 20px; right: 20px; color: #333; cursor: pointer; font-size: 1.2rem; }
+        .admin-lock { position: absolute; bottom: 20px; right: 20px; color: #444; cursor: pointer; font-size: 1.2rem; transition: 0.3s;}
+        .admin-lock:hover { color: var(--secondary); }
         
-        .admin-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 600px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 15px; z-index: 3000; padding: 25px; display: none; max-height: 90vh; overflow-y: auto;}
-        .admin-modal.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); }
-        .btn-save-admin { width: 100%; background: var(--primary); color: white; padding: 12px; border-radius: 8px; font-weight: 600; margin-top: 10px; transition: 0.3s;}
+        .admin-modal { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.9); width: 90%; max-width: 600px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; z-index: 3000; padding: 30px; display: none; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(0,0,0,0.8);}
+        .admin-modal.show { display: block; opacity: 1; transform: translate(-50%, -50%) scale(1); animation: fadeIn 0.3s;}
+        .btn-save-admin { width: 100%; background: var(--primary); color: white; padding: 15px; border-radius: 10px; font-weight: bold; margin-top: 10px; transition: 0.3s; font-size: 1.1rem;}
         .btn-save-admin:hover { background: var(--primary-hover); }
-        .input-admin { width: 100%; padding: 12px; background: #111; color: white; border: 1px solid var(--border); border-radius: 5px; margin-bottom: 15px; font-family: 'Montserrat'; }
+        .input-admin { width: 100%; padding: 15px; background: #111; color: white; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 20px; font-family: 'Montserrat'; font-size: 1rem;}
+        .input-admin:focus { border-color: var(--primary); outline: none;}
 
-        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 15px 30px; border-radius: 30px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5);}
-        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 9999; display:none; justify-content:center; align-items:center; color: white; font-size: 1.5rem; flex-direction: column;}
-        .spinner { border: 4px solid rgba(255,255,255,0.3); border-top: 4px solid var(--primary); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin-bottom: 15px;}
+        .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--success); color: white; padding: 15px 30px; border-radius: 30px; font-weight: bold; z-index: 9999; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.5); font-size: 1.1rem; animation: slideDown 0.3s;}
+        
+        .loading-overlay { position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.85); z-index: 9999; display:none; justify-content:center; align-items:center; color: white; font-size: 1.5rem; flex-direction: column; backdrop-filter: blur(5px);}
+        .spinner { border: 4px solid rgba(255,255,255,0.1); border-top: 4px solid var(--primary); border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite; margin-bottom: 20px;}
+        
         @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-50px); opacity: 0;} to { transform: translateY(0); opacity: 1;} }
 
         /* MODO EDIÇÃO ATIVADO */
         body.is-editing .admin-edit-img { display: block; }
@@ -120,13 +152,13 @@
 </head>
 <body>
 
-    <div class="toast" id="toast-msg">Sucesso!</div>
+    <div class="toast" id="toast-msg"><i class="fa-solid fa-check-circle"></i> Sucesso!</div>
     <div class="loading-overlay" id="loading-overlay"><div class="spinner"></div><span id="loading-text">Processando...</span></div>
 
     <!-- HEADER -->
     <header>
         <a href="#" class="logo"><i class="fa-solid fa-pizza-slice"></i> GF <span>Pizzaria</span></a>
-        <div class="cart-icon" onclick="toggleCart()">
+        <div class="cart-icon" id="btn-open-cart">
             <i class="fa-solid fa-cart-shopping"></i>
             <span class="cart-badge" id="cart-count">0</span>
         </div>
@@ -137,7 +169,7 @@
         <div class="hero-bg"></div>
         <div class="hero-content">
             <h1>A Melhor Pizza de Curuá</h1>
-            <p>Faça seu pedido automático. Pague via PIX com QR Code dinâmico e receba em casa!</p>
+            <p>Faça seu pedido automático. Pague via PIX, Cartão ou Dinheiro e receba em casa com agilidade e segurança!</p>
             <a href="#cardapio" class="btn-primary">Ver Cardápio</a>
         </div>
     </section>
@@ -149,38 +181,45 @@
             <h2 class="serif">Nosso Cardápio</h2>
         </div>
         <div class="menu-grid" id="menu-container">
-            <div class="loader"><i class="fa-solid fa-spinner fa-spin"></i> Carregando seu cardápio do Firebase...</div>
+            <div class="loader"><i class="fa-solid fa-spinner fa-spin"></i> Carregando cardápio...</div>
         </div>
     </section>
 
-    <!-- CARRINHO E CHECKOUT -->
+    <!-- CARRINHO E CHECKOUT CORRIGIDO -->
     <div class="cart-sidebar" id="cart-sidebar">
         <div class="cart-header">
             <h3><i class="fa-solid fa-basket-shopping"></i> Seu Pedido</h3>
-            <i class="fa-solid fa-xmark close-cart" onclick="toggleCart()"></i>
+            <i class="fa-solid fa-xmark close-cart" id="btn-close-cart"></i>
         </div>
         <div class="cart-content-area">
+            <!-- Tela 1: Lista do Carrinho -->
             <div id="cart-view">
                 <div class="cart-items" id="cart-items-container">
-                    <div class="empty-cart" id="empty-msg">O carrinho está vazio.</div>
+                    <!-- Os itens entram aqui -->
                 </div>
+                <div class="empty-cart" id="empty-msg">O carrinho está vazio. Escolha uma pizza!</div>
             </div>
             
+            <!-- Tela 2: Finalizar Pagamento -->
             <div id="checkout-view" class="checkout-area">
-                <h4 style="margin-bottom: 15px; color: var(--secondary);">Dados de Entrega</h4>
-                <div class="checkout-group"><input type="text" id="c-name" placeholder="Seu Nome (Ex: João Silva)"></div>
-                <div class="checkout-group"><input type="text" id="c-address" placeholder="Rua, Número, Bairro"></div>
+                <h4 style="margin-bottom: 15px; color: var(--secondary);"><i class="fa-solid fa-motorcycle"></i> Dados de Entrega</h4>
+                <div class="checkout-group">
+                    <input type="text" id="c-name" placeholder="Seu Nome Completo (Ex: João Silva)">
+                </div>
+                <div class="checkout-group">
+                    <input type="text" id="c-address" placeholder="Endereço Completo (Rua, Nº, Bairro)">
+                </div>
                 
-                <h4 style="margin: 25px 0 15px; color: var(--secondary);">Forma de Pagamento</h4>
+                <h4 style="margin: 25px 0 15px; color: var(--secondary);"><i class="fa-solid fa-wallet"></i> Forma de Pagamento</h4>
                 <div class="payment-options">
-                    <label class="pay-option" onclick="selectPayment('PIX')">
-                        <input type="radio" name="payment"><i class="fa-brands fa-pix" style="color: var(--pix); font-size: 1.5rem;"></i> PIX (Transferência)
+                    <label class="pay-option" id="btn-pay-pix">
+                        <i class="fa-brands fa-pix" style="color: var(--pix); font-size: 1.5rem;"></i> PIX (Transferência)
                     </label>
-                    <label class="pay-option" onclick="selectPayment('Cartão')">
-                        <input type="radio" name="payment"><i class="fa-solid fa-credit-card" style="font-size: 1.5rem;"></i> Cartão (Maquininha)
+                    <label class="pay-option" id="btn-pay-card">
+                        <i class="fa-solid fa-credit-card" style="font-size: 1.5rem;"></i> Cartão (Maquininha)
                     </label>
-                    <label class="pay-option" onclick="selectPayment('Dinheiro')">
-                        <input type="radio" name="payment"><i class="fa-solid fa-money-bill-wave" style="color: #4CAF50; font-size: 1.5rem;"></i> Dinheiro na Entrega
+                    <label class="pay-option" id="btn-pay-money">
+                        <i class="fa-solid fa-money-bill-wave" style="color: #4CAF50; font-size: 1.5rem;"></i> Dinheiro na Entrega
                     </label>
                 </div>
 
@@ -188,70 +227,84 @@
                 <div class="pix-area" id="pix-area">
                     <h4 style="color: var(--pix); margin-bottom: 10px;">Escaneie para Pagar</h4>
                     <img id="pix-qr-code" src="" alt="QR Code Pix">
-                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0;">Ou copie a chave abaixo para o app do seu banco:</p>
+                    <p style="font-size: 0.85rem; color: var(--text-muted); margin: 10px 0;">Ou copie a chave abaixo:</p>
                     <div class="pix-code" id="pix-copy-text">Gerando chave...</div>
-                    <button class="btn-copy-pix" onclick="copyPixCode()"><i class="fa-regular fa-copy"></i> Copiar Código PIX</button>
-                    <p style="font-size: 0.8rem; color: var(--text-muted);">Após pagar, clique em "Enviar Comprovante" abaixo.</p>
+                    <button class="btn-copy-pix" id="btn-copy-pix-action"><i class="fa-regular fa-copy"></i> Copiar Código PIX</button>
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-top:10px;">Após pagar, clique em "Enviar Pedido" abaixo.</p>
                 </div>
             </div>
         </div>
+        
         <div class="cart-footer">
             <div class="cart-total"><span>Total:</span><span id="cart-total-value">R$ 0,00</span></div>
-            <button class="btn-checkout" id="btn-goto-checkout" onclick="proceedToCheckout()">Avançar para Pagamento <i class="fa-solid fa-arrow-right"></i></button>
-            <button class="btn-confirm-order" id="btn-confirm-order" onclick="completeOrder()"><i class="fa-brands fa-whatsapp"></i> Enviar Comprovante/Pedido</button>
+            <button class="btn-checkout" id="btn-goto-checkout">Avançar para Pagamento <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="btn-confirm-order" id="btn-confirm-order"><i class="fa-brands fa-whatsapp"></i> Enviar Pedido (WhatsApp)</button>
         </div>
     </div>
 
-    <!-- FOOTER & ADMIN -->
+    <!-- TELA DE LOGIN MODERNA (NOVO) -->
+    <div class="login-overlay" id="login-modal">
+        <div class="login-box">
+            <i class="fa-solid fa-xmark login-close" id="btn-close-login"></i>
+            <i class="fa-solid fa-fingerprint login-icon"></i>
+            <h3>Acesso Restrito</h3>
+            <p>Insira a senha do proprietário para gerenciar o cardápio e pagamentos.</p>
+            <input type="password" id="login-password" class="login-input" placeholder="••••••••">
+            <button class="login-btn" id="btn-submit-login">Desbloquear Painel</button>
+        </div>
+    </div>
+
+    <!-- FOOTER & ADMIN LOCK -->
     <footer>
         <div style="font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--primary);">GF Pizzaria</div>
-        <i class="fa-solid fa-lock admin-lock" id="btn-login" title="Acesso Restrito"></i>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-top:10px;">&copy; 2026 GF Pizzaria - Sistema de Pedidos.</p>
+        <i class="fa-solid fa-lock admin-lock" id="btn-open-login" title="Acesso do Dono"></i>
     </footer>
 
-    <!-- MODAL DO ADMIN -->
-    <div class="admin-modal" id="admin-modal">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-            <h3 style="color: var(--secondary);">Painel de Controle</h3>
-            <i class="fa-solid fa-xmark" onclick="closeAdmin()" style="cursor: pointer; color: #fff; font-size: 1.2rem;"></i>
+    <!-- MODAL DO PAINEL ADMIN (FIREBASE) -->
+    <div class="admin-modal" id="admin-panel">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 25px;">
+            <h3 style="color: var(--secondary); font-size: 1.5rem;"><i class="fa-solid fa-gear"></i> Painel de Controle</h3>
+            <i class="fa-solid fa-xmark" id="btn-close-admin" style="cursor: pointer; color: #fff; font-size: 1.5rem;"></i>
         </div>
         
-        <h4 style="margin-bottom: 10px; color: var(--primary);">1. Configurações Financeiras</h4>
-        <label style="display:block; font-size:0.85rem; color: #ccc;">Sua Chave PIX (Telefone, CPF, Email ou Aleatória):</label>
+        <h4 style="margin-bottom: 10px; color: var(--primary);">1. Configurações PIX e WhatsApp</h4>
+        <label style="display:block; font-size:0.85rem; color: #ccc;">Sua Chave PIX (Telefone, CPF, Email):</label>
         <input type="text" id="admin-pix-key" class="input-admin" placeholder="Ex: 5593991234567">
         
-        <label style="display:block; font-size:0.85rem; color: #ccc;">Nome do Beneficiário (Seu Nome ou Empresa):</label>
+        <label style="display:block; font-size:0.85rem; color: #ccc;">Nome do Titular do PIX (Sem acentos):</label>
         <input type="text" id="admin-pix-name" class="input-admin" placeholder="Ex: Joao da Silva">
         
         <label style="display:block; font-size:0.85rem; color: #ccc;">Cidade da Conta:</label>
         <input type="text" id="admin-pix-city" class="input-admin" placeholder="Ex: Curua">
         
-        <label style="display:block; font-size:0.85rem; color: #ccc;">WhatsApp para receber pedidos:</label>
+        <label style="display:block; font-size:0.85rem; color: #ccc;">WhatsApp para receber os pedidos:</label>
         <input type="text" id="admin-wa" class="input-admin" placeholder="Ex: 5593991234567">
         
-        <button class="btn-save-admin" onclick="saveAdminSettings()">Salvar Configurações Gerais</button>
+        <button class="btn-save-admin" id="btn-save-settings">Salvar Configurações</button>
         
-        <hr style="border:0; border-top: 1px solid var(--border); margin: 25px 0;">
+        <hr style="border:0; border-top: 1px solid var(--border); margin: 30px 0;">
         
-        <h4 style="margin-bottom: 10px; color: var(--primary);">2. Adicionar Pizza ao Cardápio</h4>
-        <input type="text" id="add-name" placeholder="Nome (Ex: Calabresa)" class="input-admin">
+        <h4 style="margin-bottom: 15px; color: var(--primary);">2. Adicionar Pizza ao Cardápio</h4>
+        <input type="text" id="add-name" placeholder="Nome da Pizza (Ex: Calabresa)" class="input-admin">
         <input type="text" id="add-desc" placeholder="Ingredientes (Ex: Queijo, tomate...)" class="input-admin">
         <input type="number" id="add-price" placeholder="Preço (Ex: 35.90)" step="0.01" class="input-admin">
         
-        <button class="btn-save-admin" style="background: var(--secondary); color: #000;" onclick="addNewProductToDB()">+ Salvar Produto</button>
+        <button class="btn-save-admin" id="btn-save-product" style="background: var(--secondary); color: #000;">+ Adicionar Produto</button>
     </div>
 
     <!-- Input escondido para Upload -->
     <input type="file" id="image-uploader" style="display: none;" accept="image/*">
 
     <!-- =========================================================================================
-         FIREBASE (SUAS CHAVES V10.12.2) E LÓGICA DO SISTEMA
+         JAVASCRIPT & FIREBASE LOGIC (TOTALMENTE CORRIGIDO)
          ========================================================================================= -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getDatabase, ref as dbRef, get, push, set, update, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
         import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-        // SUAS CHAVES AQUI
+        // CHAVES DO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyCV-NLHOdBQDI88vQGDZ_rxCjx3wluAEqE",
             authDomain: "meu-site-2e63f.firebaseapp.com",
@@ -267,21 +320,32 @@
         const db = getDatabase(app);
         const storage = getStorage(app);
 
-        // Variáveis de Configuração
+        // ESTADO GLOBAL DO SISTEMA
         let cart = [];
+        let cartTotalValue = 0;
+        let selectedPayMethod = "";
+        let generatedPixPayload = "";
+        let currentUploadingId = null; 
+
+        // DADOS DO BANCO
         let waNumber = "5500000000000"; 
         let pixKey = "";
         let pixName = "";
         let pixCity = "Curua";
-        let cartTotalValue = 0;
-        let generatedPixPayload = "";
-        
-        let selectedPayMethod = "";
-        let isEditing = false;
-        let currentUploadingId = null; 
         const SENHA_ADMIN = 'admin123';
 
-        /* ================= CARREGAR DADOS DO BANCO ================= */
+        // ELEMENTOS DO DOM (Buscados 1x por performance)
+        const cartSidebar = document.getElementById('cart-sidebar');
+        const cartItemsContainer = document.getElementById('cart-items-container');
+        const emptyMsg = document.getElementById('empty-msg');
+        const cartTotalDisplay = document.getElementById('cart-total-value');
+        const cartBadge = document.getElementById('cart-count');
+        const cartView = document.getElementById('cart-view');
+        const checkoutView = document.getElementById('checkout-view');
+        const btnGotoCheckout = document.getElementById('btn-goto-checkout');
+        const btnConfirmOrder = document.getElementById('btn-confirm-order');
+
+        /* ================= INICIALIZAÇÃO ================= */
         async function loadSettings() {
             try {
                 const snapshot = await get(dbRef(db, 'settings/geral'));
@@ -292,21 +356,22 @@
                     pixName = data.pixName || "";
                     pixCity = data.pixCity || "Curua";
                 }
-            } catch(e) { console.log("Configurações padrão carregadas."); }
+            } catch(e) { console.error("Erro ao puxar configs."); }
         }
 
         async function loadMenu() {
             const container = document.getElementById('menu-container');
             try {
                 const snapshot = await get(dbRef(db, 'produtos'));
-                
                 if (!snapshot.exists()) {
-                    // SE O BANCO ESTIVER VAZIO, MOSTRA O BOTÃO MÁGICO DE CARREGAR EXEMPLOS
                     container.innerHTML = `
                         <div class="loader">
-                            <p>Seu cardápio está vazio.</p>
-                            <button class="btn-seed" onclick="seedDatabase()">Carregar Cardápio de Exemplo</button>
+                            <p>O cardápio está vazio.</p>
+                            <button class="btn-seed" id="btn-seed-db">Criar Cardápio de Exemplo</button>
                         </div>`;
+                    
+                    // Adiciona evento ao botão de semente
+                    document.getElementById('btn-seed-db')?.addEventListener('click', seedDatabase);
                     return;
                 }
 
@@ -314,7 +379,6 @@
                 snapshot.forEach((child) => {
                     const data = child.val();
                     const prodId = child.key;
-                    // Se não tiver foto, bota o placeholder
                     const imgUrl = data.imagemUrl || "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600";
                     const preco = parseFloat(data.preco).toFixed(2).replace('.', ',');
 
@@ -322,8 +386,8 @@
                     div.className = 'menu-item';
                     div.innerHTML = `
                         <div class="menu-img-wrapper">
-                            <button class="admin-delete-btn" onclick="deleteProduct('${prodId}')"><i class="fa-solid fa-trash"></i></button>
-                            <button class="admin-edit-img" onclick="triggerUpload('${prodId}')"><i class="fa-solid fa-camera"></i> Mudar Foto</button>
+                            <button class="admin-delete-btn" data-id="${prodId}"><i class="fa-solid fa-trash"></i></button>
+                            <button class="admin-edit-img" data-id="${prodId}"><i class="fa-solid fa-camera"></i> Mudar Foto</button>
                             <img src="${imgUrl}" alt="${data.nome}">
                         </div>
                         <div class="menu-details">
@@ -331,107 +395,267 @@
                             <p class="menu-desc">${data.descricao}</p>
                             <div class="menu-footer">
                                 <span class="menu-price">R$ <span>${preco}</span></span>
-                                <button class="btn-add" onclick="addToCart('${data.nome}', ${data.preco})"><i class="fa-solid fa-plus"></i></button>
+                                <button class="btn-add" data-nome="${data.nome}" data-preco="${data.preco}"><i class="fa-solid fa-plus"></i></button>
                             </div>
                         </div>
                     `;
                     container.appendChild(div);
                 });
+
+                // Anexar Eventos nos Botões Dinâmicos (Evita erros de escopo)
+                document.querySelectorAll('.btn-add').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const target = e.currentTarget;
+                        addToCart(target.getAttribute('data-nome'), parseFloat(target.getAttribute('data-preco')));
+                    });
+                });
+                document.querySelectorAll('.admin-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => deleteProduct(e.currentTarget.getAttribute('data-id')));
+                });
+                document.querySelectorAll('.admin-edit-img').forEach(btn => {
+                    btn.addEventListener('click', (e) => triggerUpload(e.currentTarget.getAttribute('data-id')));
+                });
+
             } catch (error) {
-                container.innerHTML = `<div class="loader" style="color:red;">Erro ao carregar o banco. Aperte F5.</div>`;
+                container.innerHTML = `<div class="loader" style="color:red;">Erro ao carregar o banco.</div>`;
             }
         }
 
-        window.onload = async () => {
-            await loadSettings();
-            await loadMenu();
-        };
+        window.onload = async () => { await loadSettings(); await loadMenu(); };
 
-        /* ================= CARREGAR CARDÁPIO MÁGICO (SEED) ================= */
-        window.seedDatabase = async () => {
-            showLoading("Gerando pizzas com imagens...");
+        /* ================= CARREGAR CARDÁPIO MÁGICO ================= */
+        async function seedDatabase() {
+            showLoading("Criando Pizzas...");
             const pizzasIniciais = [
-                {nome: "Calabresa Especial", descricao: "Massa fina, molho, muita muçarela, calabresa e cebola.", preco: 35.00, imagemUrl: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=600"},
-                {nome: "Marguerita Tradicional", descricao: "Muçarela, rodelas de tomate fresco e manjericão.", preco: 32.00, imagemUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600"},
-                {nome: "Frango com Catupiry", descricao: "Frango desfiado suculento com legítimo requeijão Catupiry.", preco: 38.00, imagemUrl: "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=600"}
+                {nome: "Calabresa Especial", descricao: "Massa fina, molho, muçarela, calabresa.", preco: 35.00, imagemUrl: "https://images.unsplash.com/photo-1590947132387-155cc02f3212?auto=format&fit=crop&w=600"},
+                {nome: "Marguerita Tradicional", descricao: "Muçarela, rodelas de tomate e manjericão.", preco: 32.00, imagemUrl: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?auto=format&fit=crop&w=600"}
             ];
             try {
-                for(let pizza of pizzasIniciais) {
-                    await push(dbRef(db, 'produtos'), pizza);
-                }
-                hideLoading();
-                showToast("Cardápio Criado!");
-                await loadMenu(); 
+                for(let p of pizzasIniciais) await push(dbRef(db, 'produtos'), p);
+                hideLoading(); showToast("Cardápio Criado!"); await loadMenu(); 
             } catch(e) { hideLoading(); alert("Erro ao criar."); }
         }
 
-        /* ================= PAINEL ADMINISTRADOR ================= */
-        window.closeAdmin = () => document.getElementById('admin-modal').classList.remove('show');
-        
-        document.getElementById('btn-login').addEventListener('click', () => {
-            const pass = prompt("Digite a senha do painel (admin123):");
-            if (pass === SENHA_ADMIN) {
-                isEditing = true; document.body.classList.add('is-editing');
-                document.getElementById('admin-modal').classList.add('show');
+        /* ================= LÓGICA DO CARRINHO ================= */
+        document.getElementById('btn-open-cart').addEventListener('click', toggleCart);
+        document.getElementById('btn-close-cart').addEventListener('click', toggleCart);
+        document.getElementById('btn-goto-checkout').addEventListener('click', proceedToCheckout);
+        document.getElementById('btn-confirm-order').addEventListener('click', completeOrder);
+
+        function toggleCart() {
+            cartSidebar.classList.toggle('open');
+            if(cartSidebar.classList.contains('open')) {
+                // Reseta a visão para a lista do carrinho sempre que abre
+                cartView.style.display = 'block';
+                checkoutView.style.display = 'none';
+                btnGotoCheckout.style.display = 'flex';
+                btnConfirmOrder.style.display = 'none';
+            }
+        }
+
+        function addToCart(name, price) {
+            cart.push({ name, price });
+            updateCart();
+            showToast("Item adicionado!");
+        }
+
+        function removeCart(index) {
+            cart.splice(index, 1);
+            updateCart();
+        }
+
+        function updateCart() {
+            cartItemsContainer.innerHTML = ''; 
+            cartTotalValue = 0;
+            
+            if (cart.length === 0) {
+                emptyMsg.style.display = 'block';
+            } else {
+                emptyMsg.style.display = 'none';
+                cart.forEach((item, index) => {
+                    cartTotalValue += item.price;
+                    const div = document.createElement('div'); 
+                    div.className = 'cart-item';
+                    div.innerHTML = `
+                        <div>
+                            <div class="cart-item-title">${item.name}</div>
+                            <div class="cart-item-price">R$ ${item.price.toFixed(2).replace('.', ',')}</div>
+                        </div>
+                        <i class="fa-solid fa-trash remove-btn" data-index="${index}"></i>
+                    `;
+                    cartItemsContainer.appendChild(div);
+                });
                 
-                // Preenche os inputs
+                // Atacha evento de remover
+                document.querySelectorAll('.remove-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => removeCart(parseInt(e.currentTarget.getAttribute('data-index'))));
+                });
+            }
+            cartTotalDisplay.innerText = `R$ ${cartTotalValue.toFixed(2).replace('.', ',')}`;
+            cartBadge.innerText = cart.length;
+        }
+
+        /* ================= LÓGICA DE CHECKOUT E PAGAMENTO PIX ================= */
+        function proceedToCheckout() {
+            if(cart.length === 0) { alert("Adicione um item primeiro!"); return; }
+            cartView.style.display = 'none';
+            checkoutView.style.display = 'block';
+            btnGotoCheckout.style.display = 'none';
+            btnConfirmOrder.style.display = 'flex';
+        }
+
+        // Lógica dos botões de pagamento
+        const payBtns = {
+            'PIX': document.getElementById('btn-pay-pix'),
+            'Cartão': document.getElementById('btn-pay-card'),
+            'Dinheiro': document.getElementById('btn-pay-money')
+        };
+        const pixArea = document.getElementById('pix-area');
+
+        Object.keys(payBtns).forEach(method => {
+            payBtns[method].addEventListener('click', () => {
+                selectedPayMethod = method;
+                Object.values(payBtns).forEach(el => el.classList.remove('selected'));
+                payBtns[method].classList.add('selected');
+                
+                if (method === 'PIX') {
+                    if (!pixKey || !pixName) {
+                        alert("O proprietário ainda não configurou o PIX no painel administrativo!");
+                        pixArea.style.display = 'none';
+                        return;
+                    }
+                    generatedPixPayload = buildPixPayload(pixKey, pixName, pixCity, cartTotalValue);
+                    document.getElementById('pix-copy-text').innerText = generatedPixPayload;
+                    document.getElementById('pix-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedPixPayload)}`;
+                    pixArea.style.display = 'block';
+                } else {
+                    pixArea.style.display = 'none';
+                }
+            });
+        });
+
+        document.getElementById('btn-copy-pix-action').addEventListener('click', () => {
+            navigator.clipboard.writeText(generatedPixPayload);
+            showToast("Chave PIX Copiada!");
+        });
+
+        function completeOrder() {
+            const name = document.getElementById('c-name').value.trim();
+            const address = document.getElementById('c-address').value.trim();
+
+            if(!name || !address) { alert("Por favor, preencha seu Nome e Endereço!"); return; }
+            if(selectedPayMethod === "") { alert("Por favor, selecione uma Forma de Pagamento!"); return; }
+
+            let msg = `*NOVO PEDIDO (SITE) - GF PIZZARIA*%0A%0A*Cliente:* ${name}%0A*Endereço:* ${address}%0A%0A*RESUMO:*%0A`;
+            cart.forEach(item => { msg += `▪️ ${item.name} - R$ ${item.price.toFixed(2).replace('.',',')}%0A`; });
+            msg += `%0A*TOTAL: R$ ${cartTotalValue.toFixed(2).replace('.',',')}*%0A*Pagamento:* ${selectedPayMethod}%0A%0A`;
+            
+            if(selectedPayMethod === 'PIX') { msg += `_Aviso: Cliente selecionou PIX pelo site. Confirme o recebimento._`; }
+            
+            window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
+            cart = []; updateCart(); toggleCart();
+            document.getElementById('c-name').value = ''; document.getElementById('c-address').value = '';
+            Object.values(payBtns).forEach(el => el.classList.remove('selected'));
+            pixArea.style.display = 'none'; selectedPayMethod = "";
+        }
+
+        /* GERADOR DE PIX OFICIAL (BR CODE) */
+        function buildPixPayload(key, name, city, amount) {
+            const cleanStr = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9 ]/g, "").toUpperCase();
+            name = cleanStr(name).substring(0,25);
+            city = cleanStr(city).substring(0,15);
+            const formatStr = (val) => String(val.length).padStart(2, '0');
+            const accInfo = `0014br.gov.bcb.pix01${formatStr(key)}${key}`;
+            const amountStr = amount.toFixed(2);
+            let payload = `00020126${formatStr(accInfo)}${accInfo}52040000530398654${formatStr(amountStr)}${amountStr}5802BR59${formatStr(name)}${name}60${formatStr(city)}${city}62070503***6304`;
+            
+            let polynomial = 0x1021; let result = 0xFFFF;
+            for (let i = 0; i < payload.length; i++) {
+                result ^= payload.charCodeAt(i) << 8;
+                for (let j = 0; j < 8; j++) {
+                    if ((result & 0x8000) !== 0) result = (result << 1) ^ polynomial;
+                    else result <<= 1;
+                }
+            }
+            let crc = (result & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+            return payload + crc;
+        }
+
+        /* ================= TELA DE LOGIN MODERNA E ADMIN ================= */
+        const loginModal = document.getElementById('login-modal');
+        const adminPanel = document.getElementById('admin-panel');
+
+        document.getElementById('btn-open-login').addEventListener('click', () => loginModal.classList.add('show'));
+        document.getElementById('btn-close-login').addEventListener('click', () => loginModal.classList.remove('show'));
+        document.getElementById('btn-close-admin').addEventListener('click', () => adminPanel.classList.remove('show'));
+
+        document.getElementById('btn-submit-login').addEventListener('click', () => {
+            const pass = document.getElementById('login-password').value;
+            if(pass === SENHA_ADMIN) {
+                loginModal.classList.remove('show');
+                document.getElementById('login-password').value = '';
+                
+                isEditing = true; document.body.classList.add('is-editing');
+                adminPanel.classList.add('show');
+                
                 document.getElementById('admin-wa').value = waNumber;
                 document.getElementById('admin-pix-key').value = pixKey;
                 document.getElementById('admin-pix-name').value = pixName;
                 document.getElementById('admin-pix-city').value = pixCity;
                 
-                showToast("Modo Admin Ativado!");
+                showToast("Acesso Liberado!");
+            } else {
+                alert("Senha Incorreta!");
+                document.getElementById('login-password').value = '';
             }
         });
 
-        window.saveAdminSettings = async () => {
-            showLoading("Salvando...");
+        document.getElementById('btn-save-settings').addEventListener('click', async () => {
+            showLoading("Salvando Configurações...");
             const num = document.getElementById('admin-wa').value.replace(/\D/g, '');
             const pKey = document.getElementById('admin-pix-key').value.trim();
-            const pName = document.getElementById('admin-pix-name').value.trim().substring(0, 25);
-            const pCity = document.getElementById('admin-pix-city').value.trim().substring(0, 15);
+            const pName = document.getElementById('admin-pix-name').value.trim();
+            const pCity = document.getElementById('admin-pix-city').value.trim();
 
             try {
-                await set(dbRef(db, 'settings/geral'), { 
-                    waNumber: num, pixKey: pKey, pixName: pName, pixCity: pCity 
-                });
+                await set(dbRef(db, 'settings/geral'), { waNumber: num, pixKey: pKey, pixName: pName, pixCity: pCity });
                 waNumber = num; pixKey = pKey; pixName = pName; pixCity = pCity;
-                
                 isEditing = false; document.body.classList.remove('is-editing');
-                closeAdmin(); hideLoading(); showToast("Configurações Salvas!");
+                adminPanel.classList.remove('show');
+                hideLoading(); showToast("Configurações Salvas!");
             } catch (e) { hideLoading(); alert("Erro ao salvar."); }
-        };
+        });
 
-        window.addNewProductToDB = async () => {
+        document.getElementById('btn-save-product').addEventListener('click', async () => {
             const nome = document.getElementById('add-name').value;
             const desc = document.getElementById('add-desc').value;
             const preco = parseFloat(document.getElementById('add-price').value);
 
-            if(!nome || isNaN(preco)) { alert("Preencha nome e preço!"); return; }
+            if(!nome || isNaN(preco)) { alert("Preencha Nome e Preço!"); return; }
 
-            showLoading("Criando pizza...");
+            showLoading("Salvando...");
             try {
                 await push(dbRef(db, 'produtos'), { nome, descricao: desc, preco, imagemUrl: "" });
                 document.getElementById('add-name').value = '';
                 document.getElementById('add-desc').value = '';
                 document.getElementById('add-price').value = '';
-                hideLoading(); showToast("Adicionado!"); await loadMenu(); 
-            } catch (e) { hideLoading(); alert("Erro ao adicionar."); }
-        };
+                hideLoading(); showToast("Pizza Adicionada!"); await loadMenu(); 
+            } catch (e) { hideLoading(); alert("Erro ao salvar."); }
+        });
 
-        window.deleteProduct = async (id) => {
+        async function deleteProduct(id) {
             if(confirm("Apagar pizza do cardápio?")) {
                 showLoading("Apagando...");
                 try {
                     await remove(dbRef(db, 'produtos/' + id));
-                    hideLoading(); showToast("Apagada!"); await loadMenu(); 
+                    hideLoading(); showToast("Apagada com sucesso!"); await loadMenu(); 
                 } catch(e) { hideLoading(); alert("Erro ao apagar."); }
             }
         }
 
-        /* ================= UPLOAD DE IMAGEM PARA O STORAGE ================= */
+        /* ================= UPLOAD DE IMAGENS ================= */
         const uploader = document.getElementById('image-uploader');
-        window.triggerUpload = (id) => { currentUploadingId = id; uploader.click(); };
+        function triggerUpload(id) { currentUploadingId = id; uploader.click(); }
 
         uploader.addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -446,125 +670,18 @@
                 await update(dbRef(db, 'produtos/' + currentUploadingId), { imagemUrl: downloadURL });
                 hideLoading(); showToast("Foto salva com sucesso!"); await loadMenu(); 
             } catch (error) {
-                hideLoading(); alert("⚠️ Erro. Lembre de liberar as REGRAS do Storage no Firebase!");
+                hideLoading(); alert("Erro ao enviar foto. Verifique as regras do Storage no Firebase!");
             }
             uploader.value = ''; 
         });
 
-        /* ================= CARRINHO E GERADOR DE PIX ================= */
-        window.toggleCart = () => {
-            document.getElementById('cart-sidebar').classList.toggle('open');
-            document.getElementById('cart-view').style.display = 'block';
-            document.getElementById('checkout-view').style.display = 'none';
-            document.getElementById('btn-goto-checkout').style.display = 'flex';
-            document.getElementById('btn-confirm-order').style.display = 'none';
-        };
-
-        window.addToCart = (name, price) => { cart.push({ name, price }); updateCart(); showToast("Adicionado!"); };
-        window.removeCart = (index) => { cart.splice(index, 1); updateCart(); };
-
-        function updateCart() {
-            const container = document.getElementById('cart-items-container');
-            const totalVal = document.getElementById('cart-total-value');
-            const badge = document.getElementById('cart-count');
-            
-            container.innerHTML = ''; cartTotalValue = 0;
-            if (cart.length === 0) {
-                document.getElementById('empty-msg').style.display = 'block';
-            } else {
-                document.getElementById('empty-msg').style.display = 'none';
-                cart.forEach((item, index) => {
-                    cartTotalValue += item.price;
-                    container.innerHTML += `<div class="cart-item"><div><div class="cart-item-title">${item.name}</div><div class="cart-item-price">R$ ${item.price.toFixed(2).replace('.', ',')}</div></div><i class="fa-solid fa-trash remove-btn" onclick="removeCart(${index})"></i></div>`;
-                });
-            }
-            totalVal.innerText = `R$ ${cartTotalValue.toFixed(2).replace('.', ',')}`;
-            badge.innerText = cart.length;
-        }
-
-        window.proceedToCheckout = () => {
-            if(cart.length === 0) { alert("Carrinho vazio!"); return; }
-            document.getElementById('cart-view').style.display = 'none';
-            document.getElementById('checkout-view').style.display = 'block';
-            document.getElementById('btn-goto-checkout').style.display = 'none';
-            document.getElementById('btn-confirm-order').style.display = 'flex';
-        };
-
-        window.selectPayment = (method) => {
-            selectedPayMethod = method;
-            document.querySelectorAll('.pay-option').forEach(el => el.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
-            
-            // SE FOR PIX, GERA O CÓDIGO
-            if(method === 'PIX') {
-                if(!pixKey || !pixName) {
-                    alert("O dono ainda não configurou a chave PIX no painel!");
-                    document.getElementById('pix-area').style.display = 'none';
-                    return;
-                }
-                
-                // Gera a string do PIX
-                generatedPixPayload = buildPixPayload(pixKey, pixName, pixCity, cartTotalValue);
-                document.getElementById('pix-copy-text').innerText = generatedPixPayload;
-                // Gera a imagem do QR Code via API pública
-                document.getElementById('pix-qr-code').src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(generatedPixPayload)}`;
-                document.getElementById('pix-area').style.display = 'block';
-                
-            } else {
-                document.getElementById('pix-area').style.display = 'none';
-            }
-        };
-
-        window.copyPixCode = () => {
-            navigator.clipboard.writeText(generatedPixPayload);
-            showToast("Chave PIX Copiada!");
-        }
-
-        window.completeOrder = () => {
-            const name = document.getElementById('c-name').value;
-            const address = document.getElementById('c-address').value;
-
-            if(!name || !address) { alert("Preencha Nome e Endereço!"); return; }
-            if(selectedPayMethod === "") { alert("Selecione forma de pagamento!"); return; }
-
-            let msg = `*NOVO PEDIDO (SITE) - GF PIZZARIA*%0A%0A*Cliente:* ${name}%0A*Endereço:* ${address}%0A%0A*RESUMO:*%0A`;
-            cart.forEach(item => { msg += `▪️ ${item.name} - R$ ${item.price.toFixed(2).replace('.',',')}%0A`; });
-            msg += `%0A*TOTAL: R$ ${cartTotalValue.toFixed(2).replace('.',',')}*%0A*Pagamento:* ${selectedPayMethod}%0A%0A`;
-            
-            if(selectedPayMethod === 'PIX') { msg += `_O pagamento foi via PIX no site. Estou enviando o comprovante!_`; }
-            
-            window.open(`https://wa.me/${waNumber}?text=${msg}`, '_blank');
-            cart = []; updateCart(); window.toggleCart();
-            document.getElementById('c-name').value = ''; document.getElementById('c-address').value = '';
-        };
-
-        /* ================= GERADOR DE PAYLOAD DO PIX (BR CODE) ================= */
-        function buildPixPayload(key, name, city, amount) {
-            const formatStr = (val) => String(val.length).padStart(2, '0');
-            const accInfo = `0014br.gov.bcb.pix01${formatStr(key)}${key}`;
-            const amountStr = amount.toFixed(2);
-            // Monta o cabeçalho padrão EMV do PIX
-            let payload = `00020126${formatStr(accInfo)}${accInfo}52040000530398654${formatStr(amountStr)}${amountStr}5802BR59${formatStr(name)}${name}60${formatStr(city)}${city}62070503***6304`;
-            
-            // Calcula o Checksum CRC16
-            let polynomial = 0x1021; let result = 0xFFFF;
-            for (let i = 0; i < payload.length; i++) {
-                result ^= payload.charCodeAt(i) << 8;
-                for (let j = 0; j < 8; j++) {
-                    if ((result & 0x8000) !== 0) result = (result << 1) ^ polynomial;
-                    else result <<= 1;
-                }
-            }
-            let crc = (result & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
-            return payload + crc;
-        }
-
-        /* FUNÇÕES DE UI */
-        window.showToast = (msg) => {
+        /* FUNÇÕES DE UI / FEEDBACK */
+        function showToast(msg) {
             const toast = document.getElementById('toast-msg');
-            toast.innerText = msg; toast.style.display = 'block';
+            toast.innerHTML = `<i class="fa-solid fa-check-circle"></i> ${msg}`; 
+            toast.style.display = 'block';
             setTimeout(() => { toast.style.display = 'none'; }, 3000);
-        };
+        }
         function showLoading(text) { document.getElementById('loading-text').innerText = text; document.getElementById('loading-overlay').style.display = 'flex'; }
         function hideLoading() { document.getElementById('loading-overlay').style.display = 'none'; }
     </script>
