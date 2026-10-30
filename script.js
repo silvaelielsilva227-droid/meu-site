@@ -33,16 +33,17 @@ document.addEventListener("keydown", (e) => {
   }
 });
 
-/* =========================================================
-   2. MÓDULO PRINCIPAL DO ALMOXARIFADO PRO
-   ========================================================= */
 const App = (() => {
+  // 1. Identifica qual usuário está logado (ou usa "teste_offline" se aberto direto sem login)
+  const USER_UID = localStorage.getItem("almox_usuario_uid") || "teste_offline";
+  const NOME_BANCO_USUARIO = `AlmoxarifadoProDB_${USER_UID}`;
+  const CHAVE_CATEGORIAS_USUARIO = `almox_categorias_${USER_UID}`;
+
   const UNIDADES_RAPIDAS = [
     "CRAS",
     "CREAS",
     "Centro de Qualificação",
     "Conselho Tutelar",
-    "Sede - Secretaria (FMAS)",
     "CadÚnico / Bolsa Família",
     "Programa Criança Feliz"
   ];
@@ -56,14 +57,8 @@ const App = (() => {
     "Informática"
   ];
 
-  const MATERIAIS_INICIAIS = [
-    { id: "MAT_1", codigo: "01", nome: "Papel Sulfite A4 75g (500 fls)", categoria: "Escritório", qtd: 45, unidade: "Resma", minimo: 10, local: "Armário 01 - Prat. A", deleted: false },
-    { id: "MAT_2", codigo: "02", nome: "Caneta Esferográfica Azul Cristal", categoria: "Escritório", qtd: 12, unidade: "Cx.", minimo: 5, local: "Armário 01 - Gaveta 2", deleted: false },
-    { id: "MAT_3", codigo: "03", nome: "Água Sanitária 1 Litro", categoria: "Limpeza", qtd: 8, unidade: "Unid.", minimo: 15, local: "Depósito Limpeza - B1", deleted: false },
-    { id: "MAT_4", codigo: "04", nome: "Detergente Líquido Neutro 500ml", categoria: "Limpeza", qtd: 24, unidade: "Unid.", minimo: 12, local: "Depósito Limpeza - B2", deleted: false },
-    { id: "MAT_5", codigo: "05", nome: "Copo Descartável 180ml (Tira 100 un)", categoria: "Descartáveis", qtd: 6, unidade: "Pct.", minimo: 10, local: "Estante 03", deleted: false },
-    { id: "MAT_6", codigo: "06", nome: "Envelope Saco Kraft Pardo A4", categoria: "Expediente", qtd: 120, unidade: "Unid.", minimo: 30, local: "Armário 02", deleted: false }
-  ];
+  // 2. Lista vazia: garante que toda conta nova comece com o banco de dados 100% limpo!
+  const MATERIAIS_INICIAIS = [];
 
   const state = {
     db: null,
@@ -76,9 +71,9 @@ const App = (() => {
     charts: { unidades: null, categorias: null }
   };
 
-  // Carrega categorias salvas ou padrões
+  // 3. Carrega as categorias exclusivas deste usuário
   try {
-    const salvas = localStorage.getItem("almox_categorias");
+    const salvas = localStorage.getItem(CHAVE_CATEGORIAS_USUARIO);
     state.categorias = salvas ? JSON.parse(salvas) : [...CATEGORIAS_INICIAIS];
   } catch (e) {
     state.categorias = [...CATEGORIAS_INICIAIS];
@@ -253,22 +248,27 @@ const App = (() => {
   };
 
   /* =========================================================
-     5. BANCO DE DADOS OFFLINE (INDEXEDDB)
+     5. BANCO DE DADOS EXCLUSIVO POR USUÁRIO (INDEXEDDB)
      ========================================================= */
   const DB = {
     init: (cb) => {
-      const req = indexedDB.open("AlmoxarifadoProDB", 1);
+      // Abre um banco de dados diferente e isolado para cada login (NOME_BANCO_USUARIO)
+      const req = indexedDB.open(NOME_BANCO_USUARIO, 1);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
-        if (!db.objectStoreNames.contains("materiais")) db.createObjectStore("materiais", { keyPath: "id" });
-        if (!db.objectStoreNames.contains("historico")) db.createObjectStore("historico", { keyPath: "id" });
+        if (!db.objectStoreNames.contains("materiais")) {
+          db.createObjectStore("materiais", { keyPath: "id" });
+        }
+        if (!db.objectStoreNames.contains("historico")) {
+          db.createObjectStore("historico", { keyPath: "id" });
+        }
       };
       req.onsuccess = (e) => {
         state.db = e.target.result;
         DB.load(cb);
       };
       req.onerror = () => {
-        Utils.toast("Erro ao acessar banco de dados local.", "error");
+        Utils.toast("Erro ao acessar o banco de dados deste usuário.", "error");
         if (cb) cb();
       };
     },
@@ -287,11 +287,7 @@ const App = (() => {
         };
       });
       Promise.all([p1, p2]).then(() => {
-        if (state.materiais.length === 0 && !localStorage.getItem("almox_seeded")) {
-          localStorage.setItem("almox_seeded", "true");
-          MATERIAIS_INICIAIS.forEach((m) => DB.save("materiais", m));
-          state.materiais = [...MATERIAIS_INICIAIS];
-        }
+        // Inicia limpo sem cadastrar itens de exemplo
         if (cb) cb();
       });
     },
@@ -321,7 +317,7 @@ const App = (() => {
      ========================================================= */
   const Categorias = {
     salvarLocal: () => {
-      localStorage.setItem("almox_categorias", JSON.stringify(state.categorias));
+      localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
     },
 
     renderPillsESelects: () => {
@@ -427,15 +423,14 @@ const App = (() => {
     },
 
     logout: () => {
-      // Quando a pessoa clica em Sair, envia de volta para a página de Login
+      localStorage.removeItem("almox_usuario_uid");
+      localStorage.removeItem("almox_usuario_email");
       Utils.toast("Sessão encerrada.");
       setTimeout(() => {
         window.location.href = "login.html";
       }, 1000);
     }
   };
-
-
   const Personalizacao = {
     init: () => {
       Personalizacao.setTheme(localStorage.getItem("almox_theme") || "indigo");
