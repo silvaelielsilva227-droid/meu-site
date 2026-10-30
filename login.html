@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login • Almoxarifado Pro</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      /* Estilo exclusivo para centrar o login neste ficheiro independente */
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        margin: 0;
+        background-color: var(--bg-body);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="toast-container"></div>
+
+    <div class="lock-box">
+      <div class="logo-icon white-label-target" style="margin: 0 auto 20px; width: 64px; height: 64px; border-radius: 20px;">
+        <i data-lucide="shield-check" style="width: 32px; height: 32px"></i>
+      </div>
+      <h2 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 6px; color: white;">
+        Acesso Restrito
+      </h2>
+      <p class="text-muted" style="font-size: 13px; margin-bottom: 20px;">
+        Entre com seu e-mail e senha autorizados pela gestão.
+      </p>
+
+      <form id="form-login">
+        <input
+          type="email"
+          id="login-email"
+          class="login-input"
+          placeholder="Digite seu e-mail..."
+          required
+        />
+        <div style="position: relative; margin-bottom: 12px;">
+          <input
+            type="password"
+            id="login-senha"
+            class="login-input"
+            placeholder="Digite sua senha..."
+            style="margin-bottom: 0; padding-right: 40px;"
+            required
+          />
+          <button type="button" id="btn-mostrar-senha" style="position: absolute; right: 12px; top: 14px; background: none; border: none; color: var(--text-muted); cursor: pointer;">
+            <i data-lucide="eye" id="eye-icon" style="width: 20px;"></i>
+          </button>
+        </div>
+        <button
+          type="submit"
+          id="btn-login-submit"
+          class="btn btn-primary"
+          style="width: 100%; padding: 14px; margin-top: 8px;"
+        >
+          <i data-lucide="log-in"></i> Entrar no Sistema
+        </button>
+      </form>
+    </div>
+
+    <!-- Inicialização do Firebase e Lógica de Login Independente -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+      import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+      const firebaseConfig = {
+        apiKey: "AIzaSyDnwzbGPvJvZ4iHEptAXWSp2Dg4kn--UCk",
+        authDomain: "banco01-1aa95.firebaseapp.com",
+        projectId: "banco01-1aa95",
+        storageBucket: "banco01-1aa95.firebasestorage.app",
+        messagingSenderId: "52093411951",
+        appId: "1:52093411951:web:d7b5af7862982266fe239a"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+
+      // Função simples de toast (notificação) para o ecrã de login
+      function mostrarAviso(msg, erro = false) {
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.innerHTML = `<i data-lucide="${erro ? 'alert-octagon' : 'check-circle-2'}" style="color:${erro ? 'var(--danger)' : 'var(--success)'}"></i> <span>${msg}</span>`;
+        document.getElementById("toast-container").appendChild(toast);
+        lucide.createIcons();
+        setTimeout(() => toast.remove(), 3000);
+      }
+
+      // Lógica de submissão do formulário
+      document.getElementById("form-login").addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = document.getElementById("login-email").value.trim();
+        const senha = document.getElementById("login-senha").value;
+        const btn = document.getElementById("btn-login-submit");
+
+        try {
+          btn.disabled = true;
+          btn.textContent = "Verificando...";
+          // Tenta fazer o login no Firebase
+          await signInWithEmailAndPassword(auth, email, senha);
+          
+          mostrarAviso("Acesso autorizado! A redirecionar...");
+          
+          // Sucesso: Envia o utilizador para a página do sistema!
+          setTimeout(() => {
+            window.location.href = "index.html"; 
+          }, 1000);
+
+        } catch (error) {
+          mostrarAviso("E-mail ou senha incorretos!", true);
+          btn.disabled = false;
+          btn.innerHTML = `<i data-lucide="log-in"></i> Entrar no Sistema`;
+          lucide.createIcons();
+        }
+      });
+
+      // Lógica para mostrar/esconder senha
+      document.getElementById("btn-mostrar-senha").addEventListener("click", () => {
+        const inp = document.getElementById("login-senha");
+        const icone = document.getElementById("eye-icon");
+        if (inp.type === "password") {
+          inp.type = "text";
+          icone.setAttribute("data-lucide", "eye-off");
+        } else {
+          inp.type = "password";
+          icone.setAttribute("data-lucide", "eye");
+        }
+        lucide.createIcons();
+      });
+
+      // Renderiza ícones iniciais
+      lucide.createIcons();
+    </script>
+  </body>
+</html>
