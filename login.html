@@ -87,11 +87,23 @@
         toast.className = "toast";
         toast.innerHTML = `<i data-lucide="${erro ? 'alert-octagon' : 'check-circle-2'}" style="color:${erro ? 'var(--danger)' : 'var(--success)'}"></i> <span>${msg}</span>`;
         document.getElementById("toast-container").appendChild(toast);
-        lucide.createIcons();
+        // =========================================================
+        // PUXAR LOGOTIPO PERSONALIZADO DA MEMÓRIA
+        // =========================================================
+        const logoSalva = localStorage.getItem("almox_logo");
+        if (logoSalva) {
+          const containerLogo = document.querySelector(".white-label-target");
+          if (containerLogo) {
+            containerLogo.innerHTML = `<img src="${logoSalva}" style="width:100%; height:100%; object-fit:contain; border-radius:20px;" />`;
+            containerLogo.style.background = "transparent";
+            containerLogo.style.boxShadow = "none";
+          }
+        }
+          lucide.createIcons();
         setTimeout(() => toast.remove(), 3000);
       }
 
-      // Lógica de submissão do formulário
+      // Lógica de submissão do formulário salvando o ID único do usuário (UID)
       document.getElementById("form-login").addEventListener("submit", async (e) => {
         e.preventDefault();
         const email = document.getElementById("login-email").value.trim();
@@ -101,14 +113,20 @@
         try {
           btn.disabled = true;
           btn.textContent = "Verificando...";
-          // Tenta fazer o login no Firebase
-          await signInWithEmailAndPassword(auth, email, senha);
-          
-          mostrarAviso("Acesso autorizado! A redirecionar...");
-          
-          // Sucesso: Envia o utilizador para a página do sistema!
+
+          // 1. Faz o login no Firebase e recebe os dados da conta (credencial)
+          const credencial = await signInWithEmailAndPassword(auth, email, senha);
+          const usuario = credencial.user;
+
+          // 2. Salva o ID único (UID) e o e-mail deste usuário para isolar o banco de dados dele
+          localStorage.setItem("almox_usuario_uid", usuario.uid);
+          localStorage.setItem("almox_usuario_email", usuario.email);
+
+          mostrarAviso("Acesso autorizado! Carregando seu banco de dados...");
+
+          // 3. Redireciona para o sistema principal
           setTimeout(() => {
-            window.location.href = "index.html"; 
+            window.location.href = "index.html";
           }, 1000);
 
         } catch (error) {
@@ -118,7 +136,6 @@
           lucide.createIcons();
         }
       });
-
       // Lógica para mostrar/esconder senha
       document.getElementById("btn-mostrar-senha").addEventListener("click", () => {
         const inp = document.getElementById("login-senha");
@@ -132,6 +149,32 @@
         }
         lucide.createIcons();
       });
+      // Lógica para mostrar/esconder senha
+      window.mostrarSenha = () => {
+        const inp = document.getElementById("login-senha");
+        const icone = document.getElementById("eye-icon");
+        if (inp.type === "password") {
+          inp.type = "text";
+          icone.setAttribute("data-lucide", "eye-off");
+        } else {
+          inp.type = "password";
+          icone.setAttribute("data-lucide", "eye");
+        }
+        lucide.createIcons();
+      };
+
+      // =========================================================
+      // PUXAR LOGOTIPO PERSONALIZADO DA MEMÓRIA
+      // =========================================================
+      const logoSalva = localStorage.getItem("almox_logo");
+      if (logoSalva) {
+        const containerLogo = document.querySelector(".white-label-target");
+        if (containerLogo) {
+          containerLogo.innerHTML = `<img src="${logoSalva}" style="width:100%; height:100%; object-fit:contain; border-radius:20px;" />`;
+          containerLogo.style.background = "transparent";
+          containerLogo.style.boxShadow = "none";
+        }
+      }
 
       // Renderiza ícones iniciais
       lucide.createIcons();
