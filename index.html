@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Almoxarifado Pro • Controle de Estoque e Saídas</title>
+    <meta name="theme-color" content="#040508" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+
+  <body>
+    <video id="bg-video" autoplay loop muted playsinline></video>
+    <div id="toast-container"></div>
+
+    <!-- =========================================================
+         TELA DE LOGIN COM FIREBASE (E-MAIL E SENHA)
+         ========================================================= -->
+    <div id="lock-screen">
+      <div class="lock-box">
+        <div class="logo-icon white-label-target" style="margin: 0 auto 20px; width: 64px; height: 64px; border-radius: 20px;">
+          <i data-lucide="shield-check" style="width: 32px; height: 32px"></i>
+        </div>
+        <h2 style="font-family: var(--font-display); font-size: 24px; margin-bottom: 6px;">
+          Acesso Restrito
+        </h2>
+        <p class="text-muted" style="font-size: 13px; margin-bottom: 20px;">
+          Entre com seu e-mail e senha autorizados pela gestão.
+        </p>
+
+        <form onsubmit="event.preventDefault(); if(window.app) window.app.unlock();">
+          <input
+            type="email"
+            id="login-email"
+            class="login-input"
+            placeholder="Digite seu e-mail..."
+            required
+          />
+          <input
+            type="password"
+            id="login-senha"
+            class="login-input"
+            placeholder="Digite sua senha..."
+            required
+          />
+          <button
+            type="submit"
+            id="btn-login-submit"
+            class="btn btn-primary"
+            style="width: 100%; padding: 14px; margin-top: 8px;"
+          >
+            <i data-lucide="log-in"></i> Entrar no Sistema
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL: SALVAR ARQUIVO WORD (ESCOLHER NOME E LOCAL)
+         ========================================================= -->
+    <div class="modal-overlay" id="modalSalvarWord" style="z-index: 3500;">
+      <div class="modal-box" style="max-width: 460px;">
+        <div class="modal-header">
+          <h2>
+            <i data-lucide="file-signature" style="color: var(--info)"></i>
+            Salvar Documento Word (.doc)
+          </h2>
+          <button class="btn-close" onclick="document.getElementById('modalSalvarWord').classList.remove('active')">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form id="form-salvar-word" onsubmit="event.preventDefault(); if(window.app) window.app.confirmarGravacaoWord();">
+            <div class="input-group" style="margin-bottom: 16px;">
+              <label style="color: white; font-weight: 700;">Digite o nome do arquivo Word:</label>
+              <input
+                type="text"
+                id="word-nome-arquivo"
+                class="input-modern font-mono"
+                placeholder="Ex: Relatorio_Saidas_CRAS"
+                required
+              />
+              <span class="text-muted" style="font-size: 11px; margin-top: 6px; display: block;">
+                💡 Ao confirmar, o sistema abrirá a janela para você escolher a pasta onde deseja salvar o arquivo <strong>.doc</strong>.
+              </span>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+              <button type="button" class="btn btn-outline" onclick="document.getElementById('modalSalvarWord').classList.remove('active')">
+                Cancelar
+              </button>
+              <button type="submit" class="btn btn-primary" style="background: var(--info); color: #000; font-weight: 800;">
+                <i data-lucide="folder-down"></i> Escolher Pasta e Salvar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL: GERENCIAR CATEGORIAS (ADICIONAR / EXCLUIR)
+         ========================================================= -->
+    <div class="modal-overlay" id="modalCategorias">
+      <div class="modal-box" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2>
+            <i data-lucide="tags" style="color: var(--accent)"></i>
+            Gerenciar Categorias de Materiais
+          </h2>
+          <button class="btn-close" onclick="document.getElementById('modalCategorias').classList.remove('active')">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form onsubmit="event.preventDefault(); if(window.app) window.app.adicionarCategoria();" style="display: flex; gap: 10px; margin-bottom: 18px;">
+            <input
+              type="text"
+              id="nova-categoria-nome"
+              class="input-modern"
+              placeholder="Digite a nova categoria (Ex: Gêneros Alimentícios)..."
+              required
+            />
+            <button type="submit" class="btn btn-primary" style="white-space: nowrap;">
+              <i data-lucide="plus"></i> Adicionar
+            </button>
+          </form>
+          <label style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 8px;">
+            Categorias Cadastradas:
+          </label>
+          <div id="lista-categorias-modal" style="display: flex; flex-direction: column; gap: 8px; max-height: 260px; overflow-y: auto;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 1: LISTA DE SAÍDA EM LOTE (DAR BAIXA EM MÚLTIPLOS ITENS)
+         ========================================================= -->
+    <div class="modal-overlay" id="modalGerarSaida">
+      <div class="modal-box" style="max-width: 860px;">
+        <div class="modal-header">
+          <h2>
+            <i data-lucide="shopping-bag" style="color: var(--warning)"></i>
+            Registrar Saída / Pedido em Lote
+          </h2>
+          <button class="btn-close" onclick="document.getElementById('modalGerarSaida').classList.remove('active')">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); border-radius: 14px; padding: 16px; margin-bottom: 18px;">
+            <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--info); letter-spacing: 0.8px; display: block; margin-bottom: 10px;">
+              1. Selecione ou Digite a Unidade / Setor Solicitante:
+            </label>
+            <div id="chips-unidades-destino" class="chips-row" style="margin-bottom: 12px;"></div>
+
+            <div class="form-grid-3">
+              <div class="input-group">
+                <label>Unidade / Equipamento Destino</label>
+                <input type="text" id="pedido-setor" class="input-modern" placeholder="Ex: CRAS, CREAS, Conselho Tutelar..." required />
+              </div>
+              <div class="input-group">
+                <label>Servidor / Responsável que Retirou</label>
+                <input type="text" id="pedido-responsavel" class="input-modern" placeholder="Nome de quem recebeu..." />
+              </div>
+              <div class="input-group">
+                <label>Data da Saída / Nº Ofício</label>
+                <input type="text" id="pedido-documento" class="input-modern" placeholder="Ex: Memo 018/2026" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; flex-wrap: wrap;">
+            <span style="font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+              2. Digite as quantidades que vão sair (itens em branco serão ignorados):
+            </span>
+            <div style="display: flex; gap: 8px; flex: 1; max-width: 340px;">
+              <input
+                type="text"
+                id="pedido-filtro-item"
+                class="input-modern"
+                style="padding: 8px 12px !important; font-size: 12px;"
+                placeholder="🔍 Filtrar item na lista abaixo..."
+                oninput="if(window.app) window.app.filtrarItensModalSaida()"
+              />
+            </div>
+          </div>
+
+          <div class="pedido-grid-header">
+            <div>Código</div>
+            <div>Descrição do Material</div>
+            <div>Categoria</div>
+            <div style="text-align: center;">Disponível</div>
+            <div style="text-align: center; color: var(--warning);">Qtd. Saída</div>
+          </div>
+
+          <div id="pedido-itens-lista" class="pedido-itens-scroll"></div>
+
+          <div class="pedido-resumo-bar">
+            <div>
+              <span style="font-weight: 700; color: white; text-transform: uppercase; font-size: 12px;">Resumo da Baixa em Lote:</span>
+              <span id="pedido-contador-tipos" style="font-size: 12px; color: var(--text-muted); margin-left: 8px;">0 itens selecionados</span>
+            </div>
+            <strong id="pedido-total-unidades" style="font-size: 22px; color: var(--warning); font-family: var(--font-display);">
+              0 Volumes
+            </strong>
+          </div>
+
+          <!-- Apenas dá baixa e salva no Histórico (sem forçar download de Word na hora) -->
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 16px;">
+            <button
+              type="button"
+              class="btn btn-outline"
+              onclick="document.getElementById('modalGerarSaida').classList.remove('active')"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-primary"
+              style="background: var(--warning); color: #000; padding: 14px 24px; font-weight: 800;"
+              onclick="if(window.app) window.app.processarSaidaLote();"
+            >
+              <i data-lucide="check-circle-2"></i> Confirmar Baixa no Estoque
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 2: CADASTRAR OU EDITAR MATERIAL NO ESTOQUE
+         ========================================================= -->
+    <div class="modal-overlay" id="modalMaterial">
+      <div class="modal-box overflow-visible" style="max-width: 580px;">
+        <div class="modal-header">
+          <h2 id="modal-material-titulo">
+            <i data-lucide="package-plus" style="color: var(--accent)"></i>
+            Cadastrar Material no Almoxarifado
+          </h2>
+          <button class="btn-close" onclick="document.getElementById('modalMaterial').classList.remove('active')">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body overflow-visible">
+          <form id="form-material" onsubmit="event.preventDefault(); if(window.app) window.app.salvarMaterial();">
+            <input type="hidden" id="mat-id" />
+            <div class="form-grid-2">
+              <div class="input-group">
+                <label>Código / Nº do Item (Único)</label>
+                <input
+                  type="text"
+                  id="mat-codigo"
+                  class="input-modern font-mono"
+                  placeholder="Ex: 01, 02..."
+                  oninput="if(window.app) window.app.verificarCodigoDuplicado()"
+                  required
+                />
+                <span
+                  id="aviso-codigo-duplicado"
+                  style="display: none; color: var(--danger); font-size: 11px; font-family: var(--font-mono); margin-top: 5px; font-weight: 700;"
+                >
+                  ⚠️ Este Nº de Item já está em uso!
+                </span>
+              </div>
+
+              <div class="input-group">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                  <label style="margin-bottom: 0;">Categoria Principal</label>
+                  <button
+                    type="button"
+                    style="background: none; border: none; color: var(--accent); font-size: 11px; font-weight: 700; cursor: pointer;"
+                    onclick="if(window.app) window.app.abrirModalCategorias()"
+                  >
+                    + Nova Categoria
+                  </button>
+                </div>
+                <select id="mat-categoria" class="input-modern" required></select>
+              </div>
+
+              <div class="input-group full-span">
+                <label>Descrição Completa do Material</label>
+                <input type="text" id="mat-nome" class="input-modern" placeholder="Ex: Papel Sulfite A4 75g / Água Sanitária 1 Litro" required />
+              </div>
+
+              <div class="input-group">
+                <label style="color: var(--success)">Quantidade Inicial / Atual</label>
+                <input type="number" step="0.01" min="0" id="mat-qtd" class="input-modern" placeholder="Ex: 100" required />
+              </div>
+
+              <div class="input-group">
+                <label>Unidade de Medida Padrão</label>
+                <select id="mat-unidade" class="input-modern" required>
+                  <option value="Unid.">Unidade (Unid.)</option>
+                  <option value="Cx.">Caixa (Cx.)</option>
+                  <option value="Pct.">Pacote (Pct.)</option>
+                  <option value="Resma">Resma</option>
+                  <option value="Fardo">Fardo</option>
+                  <option value="L">Litros (L)</option>
+                  <option value="Kg">Quilos (Kg)</option>
+                  <option value="Rolo">Rolo</option>
+                </select>
+              </div>
+
+              <div class="input-group">
+                <label style="color: var(--warning)">Estoque Mínimo (Alerta)</label>
+                <input type="number" step="0.01" min="0" id="mat-minimo" class="input-modern" placeholder="Ex: 15" required />
+              </div>
+
+              <div class="input-group">
+                <label>Localização / Estante (Opcional)</label>
+                <input type="text" id="mat-local" class="input-modern" placeholder="Ex: Armário 01 - Prateleira B" />
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 22px; padding: 14px;">
+              <i data-lucide="save"></i> Salvar Material no Estoque
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 3: BAIXA OU REPOSIÇÃO INDIVIDUAL
+         (Sem Responsável na Reposição + Pergunta Unidade de Medida)
+         ========================================================= -->
+    <div class="modal-overlay" id="modalMovIndividual">
+      <div class="modal-box overflow-visible" style="max-width: 480px;">
+        <div class="modal-header">
+          <h2 id="modal-mov-ind-titulo">
+            <i data-lucide="arrow-down-circle" style="color: var(--warning)"></i>
+            Movimentação Rápida
+          </h2>
+          <button class="btn-close" onclick="document.getElementById('modalMovIndividual').classList.remove('active')">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body overflow-visible">
+          <form id="form-mov-individual" onsubmit="event.preventDefault(); if(window.app) window.app.confirmarMovIndividual();">
+            <input type="hidden" id="ind-mat-id" />
+            <input type="hidden" id="ind-tipo" value="SAIDA" />
+
+            <div id="ind-resumo-box" class="resumo-item-box"></div>
+
+            <!-- Campos exclusivos de SAÍDA (Ocultos na Reposição) -->
+            <div id="ind-bloco-saida">
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label>Unidade Destino (CRAS, CREAS, Conselho, etc.)</label>
+                <input type="text" id="ind-setor" class="input-modern" list="datalist-unidades" placeholder="Selecione ou digite..." />
+                <datalist id="datalist-unidades">
+                  <option value="CRAS"></option>
+                  <option value="CREAS"></option>
+                  <option value="Centro de Qualificação"></option>
+                  <option value="Conselho Tutelar"></option>
+                  <option value="Sede / Secretaria"></option>
+                  <option value="CadÚnico / Bolsa Família"></option>
+                </datalist>
+              </div>
+
+              <div class="input-group" style="margin-bottom: 14px;">
+                <label>Responsável / Servidor que Retirou</label>
+                <input type="text" id="ind-responsavel" class="input-modern" placeholder="Nome de quem retirou o material" />
+              </div>
+            </div>
+
+            <!-- Quantidade e Unidade de Medida (Pergunta a unidade ao repor) -->
+            <div class="form-grid-2" style="margin-bottom: 14px;">
+              <div class="input-group">
+                <label id="ind-label-qtd" style="color: var(--warning); font-weight: 700;">Quantidade</label>
+                <input type="number" step="0.01" min="0.01" id="ind-qtd" class="input-modern" placeholder="0" required />
+              </div>
+
+              <div class="input-group" id="ind-grupo-unidade">
+                <label>Unidade de Medida</label>
+                <select id="ind-unidade" class="input-modern" onchange="if(window.app) window.app.verificarMudancaUnidadeReposicao()">
+                  <option value="Unid.">Unidade (Unid.)</option>
+                  <option value="Cx.">Caixa (Cx.)</option>
+                  <option value="Pct.">Pacote (Pct.)</option>
+                  <option value="Resma">Resma</option>
+                  <option value="Fardo">Fardo</option>
+                  <option value="L">Litros (L)</option>
+                  <option value="Kg">Quilos (Kg)</option>
+                  <option value="Rolo">Rolo</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Opção inteligente caso a reposição seja em Caixa/Pacote diferente da unidade atual -->
+            <div
+              id="ind-box-conversao"
+              style="display: none; background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 12px; margin-bottom: 16px;"
+            >
+              <label style="font-size: 11.5px; color: #6ee7b7; font-weight: 700; display: block; margin-bottom: 8px;">
+                💡 Você selecionou uma unidade diferente da atual. Como deseja repor?
+              </label>
+              <select id="ind-modo-unidade" class="input-modern" onchange="if(window.app) window.app.alternarModoConversao()">
+                <option value="ATUALIZAR_UNIDADE">Mudar a unidade do material na prateleira para a nova unidade</option>
+                <option value="CONVERTER_QTD">Converter (Multiplicar ex: 1 Caixa = X Unidades)</option>
+              </select>
+              <div id="ind-wrap-fator" style="display: none; margin-top: 10px;">
+                <label style="font-size: 11px; color: var(--text-muted);">Cada 1 volume informado equivale a quantas unidades atuais?</label>
+                <input type="number" step="1" min="1" id="ind-fator-conversao" class="input-modern" value="1" placeholder="Ex: 10" />
+              </div>
+            </div>
+
+            <button type="submit" id="ind-btn-submit" class="btn btn-primary" style="width: 100%; padding: 13px;">
+              Confirmar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL 4: CENTRAL DE UTILITÁRIOS, TEMAS E LIXEIRA
+         ========================================================= -->
+    <div class="modal-overlay" id="modalUtilitarios">
+      <div class="modal-box" style="max-width: 680px;">
+        <div class="modal-header">
+          <h2>
+            <i data-lucide="sliders" style="color: var(--accent)"></i>
+            Central de Utilitários, Aparência e Segurança
+          </h2>
+          <button class="btn-close" onclick="document.getElementById('modalUtilitarios').classList.remove('active')">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="util-grid">
+            <div class="util-card">
+              <h4><i data-lucide="palette" style="width: 16px; color: var(--accent)"></i> Cores do Sistema</h4>
+              <p class="text-muted" style="font-size: 12px; margin-bottom: 12px;">Personalize o destaque da interface</p>
+              <div class="theme-selector">
+                <div class="theme-btn active" data-theme="indigo" style="background: #6366f1" onclick="window.app.setTheme('indigo')"></div>
+                <div class="theme-btn" data-theme="emerald" style="background: #10b981" onclick="window.app.setTheme('emerald')"></div>
+                <div class="theme-btn" data-theme="ruby" style="background: #f43f5e" onclick="window.app.setTheme('ruby')"></div>
+                <div class="theme-btn" data-theme="gold" style="background: #f59e0b" onclick="window.app.setTheme('gold')"></div>
+                <div class="theme-btn" data-theme="ocean" style="background: #0ea5e9" onclick="window.app.setTheme('ocean')"></div>
+                <div class="theme-btn" data-theme="neon" style="background: #d946ef" onclick="window.app.setTheme('neon')"></div>
+              </div>
+            </div>
+
+            <div class="util-card">
+              <h4><i data-lucide="image" style="width: 16px; color: var(--success)"></i> Logotipo e Plano de Fundo</h4>
+              <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                <input type="file" id="input-logo" accept="image/*" style="display: none" onchange="window.app.uploadLogo(event)" />
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('input-logo').click()">
+                  <i data-lucide="upload"></i> Subir Logo
+                </button>
+                <input type="file" id="input-bg" accept="image/*,video/mp4" style="display: none" onchange="window.app.uploadBg(event)" />
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('input-bg').click()">
+                  <i data-lucide="monitor"></i> Papel de Parede
+                </button>
+                <button class="btn btn-outline btn-sm" style="color: var(--danger); border-color: var(--danger);" onclick="window.app.resetVisual()">
+                  <i data-lucide="rotate-ccw"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="util-card">
+              <h4><i data-lucide="database" style="width: 16px; color: var(--info)"></i> Backup & Exportação Excel</h4>
+              <div style="display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap;">
+                <button class="btn btn-primary btn-sm" onclick="window.app.exportBackup()">
+                  <i data-lucide="download"></i> Baixar JSON
+                </button>
+                <input type="file" id="input-restore" accept=".json" style="display: none" onchange="window.app.importBackup(event)" />
+                <button class="btn btn-outline btn-sm" onclick="document.getElementById('input-restore').click()">
+                  <i data-lucide="upload"></i> Restaurar
+                </button>
+                <button class="btn btn-outline btn-sm" style="border-color: var(--success); color: var(--success);" onclick="window.app.exportarCSV()">
+                  <i data-lucide="sheet"></i> Planilha .CSV
+                </button>
+              </div>
+            </div>
+
+            <div class="util-card">
+              <h4><i data-lucide="trash-2" style="width: 16px; color: var(--danger)"></i> Lixeira de Materiais</h4>
+              <p class="text-muted" style="font-size: 12px; margin-bottom: 10px;">Recupere itens apagados por engano</p>
+              <div id="lista-lixeira" style="max-height: 110px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         ESTRUTURA PRINCIPAL: COMMAND CENTER (TOP DOCK PANORÂMICO)
+         ========================================================= -->
+    <div class="command-layout">
+      <header class="top-dock no-print">
+        <div class="dock-brand">
+          <div class="logo-icon white-label-target">
+            <i data-lucide="boxes"></i>
+          </div>
+          <div>
+            <div class="logo-text">ALMOXARIFADO<span style="color: var(--accent)">.PRO</span></div>
+            <span class="sub-brand">Secretaria Municipal de Assistência Social</span>
+          </div>
+        </div>
+
+        <!-- NAVEGAÇÃO CENTRAL COM ABA PRÓPRIA PARA PAINEL/GRÁFICOS -->
+        <nav class="dock-nav">
+          <button class="dock-pill active" data-target="view-estoque" onclick="window.app.navigate('view-estoque')">
+            <i data-lucide="package"></i>
+            <span>Prateleira & Estoque</span>
+          </button>
+          <button class="dock-pill" data-target="view-historico" onclick="window.app.navigate('view-historico')">
+            <i data-lucide="clipboard-list"></i>
+            <span>Histórico de Saídas</span>
+          </button>
+          <button class="dock-pill" data-target="view-painel" onclick="window.app.navigate('view-painel')">
+            <i data-lucide="bar-chart-3"></i>
+            <span>Painel & Gráficos</span>
+          </button>
+          <button class="dock-pill" data-target="view-relatorios" onclick="window.app.navigate('view-relatorios')">
+            <i data-lucide="printer"></i>
+            <span>Relatórios A4</span>
+          </button>
+        </nav>
+
+        <div class="dock-actions">
+          <div class="search-box">
+            <i data-lucide="search" class="search-icon"></i>
+            <input
+              type="text"
+              id="global-search"
+              placeholder="Buscar material, código ou prateleira... (Ctrl+K)"
+              oninput="window.app.pesquisaGlobal(this.value)"
+            />
+            <button
+              class="btn-mic"
+              id="btn-voice-search"
+              onclick="window.app.ouvirVoz()"
+              title="Pesquisar por Voz"
+            >
+              <i data-lucide="mic" style="width: 15px;"></i>
+            </button>
+          </div>
+
+          <button
+            class="btn-icon-dock"
+            onclick="window.app.abrirModalCategorias()"
+            title="Gerenciar / Adicionar Categorias"
+            style="border-color: rgba(99, 102, 241, 0.4); color: #a5b4fc;"
+          >
+            <i data-lucide="tags"></i>
+          </button>
+
+          <button
+            class="btn-icon-dock"
+            onclick="window.app.abrirUtilitarios()"
+            title="Utilitários, Temas, Backup e Lixeira"
+          >
+            <i data-lucide="sliders"></i>
+          </button>
+          <button
+            class="btn-icon-dock"
+            onclick="window.app.logout()"
+            title="Sair da Conta"
+            style="border-color: rgba(244, 63, 94, 0.4); color: var(--danger);"
+          >
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </header>
+
+      <main class="workspace-content">
+        <!-- =========================================================
+             VISÃO 1: PRATELEIRA & ESTOQUE (100% FOCADA NOS MATERIAIS)
+             ========================================================= -->
+        <section id="view-estoque" class="view active">
+          <div class="hero-command-bar">
+            <div class="kpi-strip">
+              <div class="mini-kpi">
+                <div class="mini-kpi-icon" style="background: var(--accent-glow); color: var(--accent);">
+                  <i data-lucide="package"></i>
+                </div>
+                <div>
+                  <span class="mini-kpi-label">Itens Cadastrados</span>
+                  <strong class="mini-kpi-val" id="kpi-total-itens">0</strong>
+                </div>
+              </div>
+
+              <div class="mini-kpi">
+                <div class="mini-kpi-icon" style="background: var(--success-glow); color: var(--success);">
+                  <i data-lucide="layers"></i>
+                </div>
+                <div>
+                  <span class="mini-kpi-label">Volume em Estoque</span>
+                  <strong class="mini-kpi-val" id="kpi-volume-total" style="color: var(--success);">0</strong>
+                </div>
+              </div>
+
+              <div class="mini-kpi" style="cursor: pointer;" onclick="window.app.filtrarStatusRapido('Critico')" title="Clique para filtrar itens acabando">
+                <div class="mini-kpi-icon" style="background: var(--danger-glow); color: var(--danger);">
+                  <i data-lucide="alert-triangle"></i>
+                </div>
+                <div>
+                  <span class="mini-kpi-label">Estoque Baixo</span>
+                  <strong class="mini-kpi-val" id="kpi-criticos" style="color: var(--danger);">0</strong>
+                </div>
+              </div>
+
+              <div class="mini-kpi">
+                <div class="mini-kpi-icon" style="background: var(--warning-glow); color: var(--warning);">
+                  <i data-lucide="send"></i>
+                </div>
+                <div>
+                  <span class="mini-kpi-label">Saídas no Mês</span>
+                  <strong class="mini-kpi-val" id="kpi-saidas-mes" style="color: var(--warning);">0</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="hero-cta-group">
+              <button
+                class="btn btn-outline"
+                style="border-color: var(--accent); color: #c7d2fe;"
+                onclick="window.app.abrirModalMaterial()"
+              >
+                <i data-lucide="plus-circle"></i> Cadastrar Material
+              </button>
+
+              <button
+                class="btn btn-primary"
+                style="background: var(--warning); color: #000; font-weight: 800;"
+                onclick="window.app.abrirModalListaSaida()"
+              >
+                <i data-lucide="shopping-bag"></i> Dar Baixa em Lote (Pedido)
+              </button>
+            </div>
+          </div>
+
+          <div id="banner-alerta-critico"></div>
+
+          <!-- BARRA DE PÍLULAS DE CATEGORIAS DINÂMICAS + SELECTS CUSTOMIZADOS -->
+          <div class="shelf-filter-bar overflow-visible">
+            <div class="category-pills" id="category-pills-container"></div>
+
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <div style="width: 210px;">
+                <select id="filtro-nivel-estoque" class="input-modern" onchange="window.app.renderEstoque()">
+                  <option value="Todos">Todos os Níveis</option>
+                  <option value="Critico">⚠️ Apenas Estoque Baixo</option>
+                  <option value="Normal">✅ Estoque Normal</option>
+                </select>
+              </div>
+
+              <div style="width: 205px;">
+                <select id="filtro-ordenacao" class="input-modern" onchange="window.app.renderEstoque()">
+                  <option value="codigo">Ordenar por Nº Item</option>
+                  <option value="nome">Ordenar por Nome (A-Z)</option>
+                  <option value="menor_saldo">Menor Saldo Primeiro</option>
+                  <option value="maior_saldo">Maior Saldo Primeiro</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- GRADE DE CARTÕES DE ESTOQUE (SEM GRÁFICOS EMBAIXO) -->
+          <div id="shelf-grid-container" class="shelf-grid"></div>
+        </section>
+
+        <!-- =========================================================
+             VISÃO 2: HISTÓRICO DE SAÍDAS + EXPORTAÇÃO WORD POR MÊS/ANO
+             ========================================================= -->
+        <section id="view-historico" class="view">
+          <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <h2 class="page-title">Histórico de Saídas e Entregas</h2>
+              <p class="text-muted">Filtre por mês, ano ou "Todos" e gere o documento Word consolidado das saídas ou de um pedido individual.</p>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button
+                class="btn btn-outline"
+                style="border-color: var(--info); color: #a5f3fc;"
+                onclick="window.app.gerarWordHistoricoFiltrado()"
+              >
+                <i data-lucide="file-text"></i> Gerar Word das Saídas Filtradas (.doc)
+              </button>
+              <button
+                class="btn btn-primary"
+                style="background: var(--warning); color: #000; font-weight: 800;"
+                onclick="window.app.abrirModalListaSaida()"
+              >
+                <i data-lucide="plus"></i> Nova Baixa em Lote
+              </button>
+            </div>
+          </div>
+
+          <div class="card filter-strip-bar overflow-visible">
+            <div>
+              <select id="hist-mes" class="input-modern" onchange="window.app.renderHistorico()"></select>
+            </div>
+            <div>
+              <select id="hist-ano" class="input-modern" onchange="window.app.renderHistorico()"></select>
+            </div>
+            <div>
+              <input
+                type="text"
+                id="hist-busca"
+                class="input-modern"
+                placeholder="Filtrar por unidade (CRAS, CREAS, Conselho), material ou servidor..."
+                oninput="window.app.renderHistorico()"
+              />
+            </div>
+          </div>
+
+          <div id="lista-historico-container" class="bento-history-list"></div>
+        </section>
+
+        <!-- =========================================================
+             VISÃO 3: PAINEL EXECUTIVO & GRÁFICOS (NO TOPO DA PRÓPRIA ABA)
+             ========================================================= -->
+        <section id="view-painel" class="view">
+          <div style="margin-bottom: 20px;">
+            <h2 class="page-title">Painel Analítico de Consumo e Estoque</h2>
+            <p class="text-muted">Acompanhamento visual da distribuição de materiais por categoria e volume entregue para cada unidade.</p>
+          </div>
+
+          <div class="charts-row">
+            <div class="card chart-box">
+              <h4><i data-lucide="bar-chart-3" style="width: 18px; color: var(--accent);"></i> Volume de Saídas por Unidade (CRAS, CREAS, Qualificação, Conselho...)</h4>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-unidades"></canvas>
+              </div>
+            </div>
+
+            <div class="card chart-box">
+              <h4><i data-lucide="pie-chart" style="width: 18px; color: var(--success);"></i> Distribuição do Estoque por Categoria</h4>
+              <div class="chart-canvas-wrap">
+                <canvas id="chart-categorias"></canvas>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- =========================================================
+             VISÃO 4: RELATÓRIOS OFICIAIS A4 + BOTÃO WORD DINÂMICO DA OPÇÃO
+             ========================================================= -->
+        <section id="view-relatorios" class="view">
+          <div class="no-print overflow-visible" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <h2 class="page-title">Relatórios Oficiais A4 & Exportação Word</h2>
+              <p class="text-muted">Ao mudar o tipo de relatório abaixo, você pode tanto imprimir em A4 quanto gerar o arquivo Word da opção escolhida.</p>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+              <div style="width: 300px;">
+                <select id="rel-tipo" class="input-modern" onchange="window.app.renderRelatorioA4()">
+                  <option value="HISTORICO_SAIDAS">Relatório Geral de Saídas por Unidade</option>
+                  <option value="ESTOQUE_GERAL">Posição Atual do Estoque Completo</option>
+                  <option value="ESTOQUE_CRITICO">Relatório de Materiais em Falta / Críticos</option>
+                </select>
+              </div>
+
+              <button
+                id="btn-word-relatorio-dinamico"
+                class="btn btn-outline"
+                style="border-color: var(--info); color: #a5f3fc;"
+                onclick="window.app.gerarWordRelatorioAtual()"
+              >
+                <i data-lucide="file-text"></i> Gerar Word: Relatório de Saídas (.doc)
+              </button>
+
+              <button class="btn btn-primary" onclick="window.print()">
+                <i data-lucide="printer"></i> Imprimir Folha A4
+              </button>
+            </div>
+          </div>
+
+          <div class="card" id="area-relatorio-print" style="background: white; color: black; border-radius: 8px; padding: 36px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 3px solid #000; padding-bottom: 14px; margin-bottom: 20px;">
+              <div>
+                <h2 style="color: black; font-family: var(--font-display); font-size: 18px; text-transform: uppercase;">
+                  SECRETARIA MUNICIPAL DE ASSISTÊNCIA SOCIAL
+                </h2>
+                <p style="color: #444; font-size: 12px; font-weight: 600;">
+                  Coordenação de Almoxarifado, Patrimônio e Suprimentos - FMAS
+                </p>
+              </div>
+              <div style="text-align: right;">
+                <h3 id="print-titulo" style="color: black; font-size: 15px; text-transform: uppercase;">
+                  RELATÓRIO DE ALMOXARIFADO
+                </h3>
+                <p id="print-data" style="color: #555; font-size: 11px;"></p>
+              </div>
+            </div>
+            <div id="print-tabela-wrap"></div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <!-- Inicialização do Firebase e Autenticação -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+      import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-analytics.js";
+      import {
+        getAuth,
+        signInWithEmailAndPassword,
+        onAuthStateChanged,
+        signOut
+      } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+
+      // Sua chave de configuração do Firebase
+      const firebaseConfig = {
+        apiKey: "AIzaSyDnwzbGPvJvZ4iHEptAXWSp2Dg4kn--UCk",
+        authDomain: "banco01-1aa95.firebaseapp.com",
+        projectId: "banco01-1aa95",
+        storageBucket: "banco01-1aa95.firebasestorage.app",
+        messagingSenderId: "52093411951",
+        appId: "1:52093411951:web:d7b5af7862982266fe239a",
+        measurementId: "G-MRQFBKKVEW"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const analytics = getAnalytics(app);
+      const auth = getAuth(app);
+
+      // Disponibiliza as funções de login para o script.js
+      window.firebaseAuth = {
+        auth,
+        signIn: (email, senha) => signInWithEmailAndPassword(auth, email, senha),
+        logout: () => signOut(auth),
+        onChange: (callback) => onAuthStateChanged(auth, callback)
+      };
+    </script>
+
+    <script src="script.js"></script>
+  </body>
+</html>
