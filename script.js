@@ -248,11 +248,13 @@ const App = (() => {
   };
 
   /* =========================================================
-     5. BANCO DE DADOS EXCLUSIVO POR USUÁRIO (INDEXEDDB)
+     5. BANCO DE DADOS NA NUVEM (FIREBASE) + SALVAGUARDA LOCAL
      ========================================================= */
   const DB = {
+    usandoNuvem: false,
+
     init: (cb) => {
-      // Abre um banco de dados diferente e isolado para cada login (NOME_BANCO_USUARIO)
+      // 1. Abre também o banco local como cache/salvaguarda offline
       const req = indexedDB.open(NOME_BANCO_USUARIO, 1);
       req.onupgradeneeded = (e) => {
         const db = e.target.result;
@@ -265,14 +267,78 @@ const App = (() => {
       };
       req.onsuccess = (e) => {
         state.db = e.target.result;
-        DB.load(cb);
+        DB.conectarNuvemOuLocal(cb);
       };
       req.onerror = () => {
-        Utils.toast("Erro ao acessar o banco de dados deste usuário.", "error");
-        if (cb) cb();
+        DB.conectarNuvemOuLocal(cb);
       };
     },
-    load: (cb) => {
+
+    conectarNuvemOuLocal: (cb) => {
+      // Se for conta real logada (não "teste_offline"), aguarda a ponte do Firebase
+      if (USER_UID !== "teste_offline") {
+        let tentativas = 0;
+        const aguardarFirebase = setInterval(async () => {
+          tentativas++;
+          if (window.firebaseCloud) {
+            clearInterval(aguardarFirebase);
+            DB.usandoNuvem = true;
+            await DB.load(cb);
+
+            // Ativa atualização em tempo real entre aparelhos diferentes (PC / Telemóvel)
+            window.firebaseCloud.escutarTempoReal(USER_UID, (dadosNuvem) => {
+              state.materiais = dadosNuvem.materiais ? Object.values(dadosNuvem.materiais) : [];
+              state.historico = dadosNuvem.historico ? Object.values(dadosNuvem.historico) : [];
+              if (dadosNuvem.categorias && Array.isArray(dadosNuvem.categorias)) {
+                state.categorias = dadosNuvem.categorias;
+                localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
+                Categorias.renderPillsESelects();
+              }
+              Estoque.render();
+              Historico.render();
+              RelatoriosA4.render();
+              Estoque.atualizarGraficos();
+            });
+          } else if (tentativas > 25) {
+            // Se estiver sem internet, usa o banco local como fallback
+            clearInterval(aguardarFirebase);
+            DB.loadLocal(cb);
+          }
+        }, 100);
+      } else {
+        // Modo de teste offline direto no computador
+        DB.loadLocal(cb);
+      }
+    },
+
+    load: async (cb) => {
+      if (DB.usandoNuvem && window.firebaseCloud && USER_UID !== "teste_offline") {
+        try {
+          const dados = await window.firebaseCloud.carregarTudo(USER_UID);
+          if (dados) {
+            state.materiais = dados.materiais ? Object.values(dados.materiais) : [];
+            state.historico = dados.historico ? Object.values(dados.historico) : [];
+            if (dados.categorias && Array.isArray(dados.categorias)) {
+              state.categorias = dados.categorias;
+              localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
+              Categorias.renderPillsESelects();
+            }
+          } else {
+            // Conta nova na nuvem: começa 100% limpa!
+            state.materiais = [];
+            state.historico = [];
+          }
+          if (cb) cb();
+          return;
+        } catch (err) {
+          console.warn("Falha ao ler da nuvem, a usar cache local:", err);
+        }
+      }
+      DB.loadLocal(cb);
+    },
+
+    loadLocal: (cb) => {
+      if (!state.db) { if (cb) cb(); return; }
       const tx = state.db.transaction(["materiais", "historico"], "readonly");
       const p1 = new Promise((res) => {
         tx.objectStore("materiais").getAll().onsuccess = (e) => {
@@ -287,28 +353,56 @@ const App = (() => {
         };
       });
       Promise.all([p1, p2]).then(() => {
-        // Inicia limpo sem cadastrar itens de exemplo
         if (cb) cb();
       });
     },
-    save: (store, obj, cb) => {
-      const tx = state.db.transaction([store], "readwrite");
-      tx.objectStore(store).put(obj);
-      tx.oncomplete = () => {
-        const arr = state[store];
-        const i = arr.findIndex((x) => x.id === obj.id);
-        if (i > -1) arr[i] = obj;
-        else arr.push(obj);
-        if (cb) cb();
-      };
+
+    save: async (store, obj, cb) => {
+      // Atualiza o estado em memória imediatamente
+      const arr = state[store];
+      const i = arr.findIndex((x) => x.id === obj.id);
+      if (i > -1) arr[i] = obj;
+      else arr.push(obj);
+
+      // 1. Guarda na Nuvem do Firebase (se o utilizador estiver autenticado)
+      if (DB.usandoNuvem && window.firebaseCloud && USER_UID !== "teste_offline") {
+        try {
+          await window.firebaseCloud.guardarItem(USER_UID, store, obj);
+        } catch (e) {
+          Utils.toast("Erro ao sincronizar item com a nuvem.", "error");
+        }
+      }
+
+      // 2. Guarda também na cache local do aparelho
+      if (state.db) {
+        const tx = state.db.transaction([store], "readwrite");
+        tx.objectStore(store).put(obj);
+        tx.oncomplete = () => { if (cb) cb(); };
+      } else if (cb) {
+        cb();
+      }
     },
-    delete: (store, id, cb) => {
-      const tx = state.db.transaction([store], "readwrite");
-      tx.objectStore(store).delete(id);
-      tx.oncomplete = () => {
-        state[store] = state[store].filter((x) => x.id !== id);
-        if (cb) cb();
-      };
+
+    delete: async (store, id, cb) => {
+      state[store] = state[store].filter((x) => x.id !== id);
+
+      // 1. Apaga na Nuvem do Firebase
+      if (DB.usandoNuvem && window.firebaseCloud && USER_UID !== "teste_offline") {
+        try {
+          await window.firebaseCloud.apagarItem(USER_UID, store, id);
+        } catch (e) {
+          Utils.toast("Erro ao remover item na nuvem.", "error");
+        }
+      }
+
+      // 2. Apaga na cache local
+      if (state.db) {
+        const tx = state.db.transaction([store], "readwrite");
+        tx.objectStore(store).delete(id);
+        tx.oncomplete = () => { if (cb) cb(); };
+      } else if (cb) {
+        cb();
+      }
     }
   };
 
@@ -318,6 +412,9 @@ const App = (() => {
   const Categorias = {
     salvarLocal: () => {
       localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
+      if (window.firebaseCloud && USER_UID !== "teste_offline") {
+        window.firebaseCloud.guardarCategorias(USER_UID, state.categorias);
+      }
     },
 
     renderPillsESelects: () => {
@@ -422,7 +519,10 @@ const App = (() => {
       console.log("Sistema Almoxarifado inicializado. Modo de teste offline ativo.");
     },
 
-    logout: () => {
+    logout: async () => {
+      if (window.firebaseCloud) {
+        await window.firebaseCloud.encerrarSessao();
+      }
       localStorage.removeItem("almox_usuario_uid");
       localStorage.removeItem("almox_usuario_email");
       Utils.toast("Sessão encerrada.");
@@ -1769,17 +1869,18 @@ const App = (() => {
           state.categorias = obj.categorias;
           Categorias.salvarLocal();
         }
-        const tx = state.db.transaction(["materiais", "historico"], "readwrite");
-        (obj.materiais || []).forEach((m) => tx.objectStore("materiais").put(m));
-        (obj.historico || []).forEach((h) => tx.objectStore("historico").put(h));
-        tx.oncomplete = () => {
-          DB.load(() => {
-            Categorias.renderPillsESelects();
-            Estoque.render();
-            Historico.render();
-            Utils.toast("Backup restaurado com sucesso!");
-          });
-        };
+        for (const m of (obj.materiais || [])) {
+          await new Promise((r) => DB.save("materiais", m, r));
+        }
+        for (const h of (obj.historico || [])) {
+          await new Promise((r) => DB.save("historico", h, r));
+        }
+        Categorias.renderPillsESelects();
+        Estoque.render();
+        Historico.render();
+        RelatoriosA4.render();
+        Estoque.atualizarGraficos();
+        Utils.toast("Backup restaurado e sincronizado na nuvem com sucesso!");
       } catch (err) {
         Utils.toast("Arquivo de backup inválido.", "error");
       }
