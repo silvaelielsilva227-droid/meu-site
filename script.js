@@ -1,14 +1,18 @@
 /* =========================================================
    1. UTILITÁRIOS DE ZOOM E ATALHOS DE TECLADO (F11, CTRL+K, ESC)
    ========================================================= */
-let nivelZoom = parseFloat(localStorage.getItem("almox_zoom_level")) || 0;
-function aplicarZoom(mudanca) {
+let nivelZoom = 0; // Removido do localStorage
+function aplicarZoom(mudanca, salvarNaNuvem = true) {
   nivelZoom = Math.min(3, Math.max(-2, nivelZoom + mudanca));
-  localStorage.setItem("almox_zoom_level", nivelZoom);
   if (typeof nw !== "undefined") {
     nw.Window.get().zoomLevel = nivelZoom;
   } else {
     document.body.style.zoom = 1 + nivelZoom * 0.08;
+  }
+  
+  const USER_UID = localStorage.getItem("almox_usuario_uid");
+  if (salvarNaNuvem && window.firebaseCloud && USER_UID && USER_UID !== "teste_offline") {
+    window.firebaseCloud.guardarConfig(USER_UID, "zoom", nivelZoom);
   }
 }
 
@@ -285,15 +289,22 @@ const App = (() => {
             DB.usandoNuvem = true;
             await DB.load(cb);
 
-            // Ativa atualização em tempo real entre aparelhos diferentes (PC / Telemóvel)
+            // Ativa atualização em tempo real entre aparelhos diferentes
             window.firebaseCloud.escutarTempoReal(USER_UID, (dadosNuvem) => {
               state.materiais = dadosNuvem.materiais ? Object.values(dadosNuvem.materiais) : [];
               state.historico = dadosNuvem.historico ? Object.values(dadosNuvem.historico) : [];
+              
               if (dadosNuvem.categorias && Array.isArray(dadosNuvem.categorias)) {
                 state.categorias = dadosNuvem.categorias;
                 localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
                 Categorias.renderPillsESelects();
               }
+
+              // NOVO: Puxa as configurações visuais diretamente da nuvem
+              if (dadosNuvem.configuracoes) {
+                Personalizacao.aplicarConfigs(dadosNuvem.configuracoes);
+              }
+
               Estoque.render();
               Historico.render();
               RelatoriosA4.render();
@@ -531,35 +542,42 @@ const App = (() => {
       }, 1000);
     }
   };
+  
   const Personalizacao = {
     init: () => {
-      Personalizacao.setTheme(localStorage.getItem("almox_theme") || "indigo");
-      const logo = localStorage.getItem("almox_logo");
-      if (logo) Personalizacao.aplicarLogo(logo);
-      const bg = localStorage.getItem("almox_bg");
-      const bgType = localStorage.getItem("almox_bg_type");
-      if (bg) Personalizacao.aplicarBg(bg, bgType);
+      // O init visual agora é feito na Nuvem, disparado no escutarTempoReal do DB
     },
-    setTheme: (nome) => {
-      const paletas = {
-        indigo: { m: "#6366f1", g: "rgba(99,102,241,0.25)" },
-        emerald: { m: "#10b981", g: "rgba(16,185,129,0.25)" },
-        ruby: { m: "#f43f5e", g: "rgba(244,63,94,0.25)" },
-        gold: { m: "#f59e0b", g: "rgba(245,158,11,0.25)" },
-        ocean: { m: "#0ea5e9", g: "rgba(14,165,233,0.25)" },
-        neon: { m: "#d946ef", g: "rgba(217,70,239,0.25)" }
-      };
-      if (!paletas[nome]) return;
-      document.documentElement.style.setProperty("--accent", paletas[nome].m);
-      document.documentElement.style.setProperty("--accent-glow", paletas[nome].g);
-      localStorage.setItem("almox_theme", nome);
-      document.querySelectorAll(".theme-btn").forEach((b) => b.classList.toggle("active", b.dataset.theme === nome));
-      Estoque.atualizarGraficos();
-    },
-    aplicarLogo: (b64) => {
+    
+    aplicarConfigs: (configs) => {
+      if (!configs) return;
+
+      // 1. Tema
+      if (configs.tema) {
+        const paletas = {
+          indigo: { m: "#6366f1", g: "rgba(99,102,241,0.25)" },
+          emerald: { m: "#10b981", g: "rgba(16,185,129,0.25)" },
+          ruby: { m: "#f43f5e", g: "rgba(244,63,94,0.25)" },
+          gold: { m: "#f59e0b", g: "rgba(245,158,11,0.25)" },
+          ocean: { m: "#0ea5e9", g: "rgba(14,165,233,0.25)" },
+          neon: { m: "#d946ef", g: "rgba(217,70,239,0.25)" }
+        };
+        if (paletas[configs.tema]) {
+          document.documentElement.style.setProperty("--accent", paletas[configs.tema].m);
+          document.documentElement.style.setProperty("--accent-glow", paletas[configs.tema].g);
+          document.querySelectorAll(".theme-btn").forEach((b) => b.classList.toggle("active", b.dataset.theme === configs.tema));
+        }
+      }
+
+      // 2. Zoom
+      if (configs.zoom !== undefined) {
+        nivelZoom = parseFloat(configs.zoom);
+        aplicarZoom(0, false); // Aplica sem disparar nova gravação
+      }
+
+      // 3. Logo
       document.querySelectorAll(".white-label-target").forEach((el) => {
-        if (b64) {
-          el.innerHTML = `<img src="${b64}" style="width:100%;height:100%;object-fit:contain;border-radius:12px;" />`;
+        if (configs.logo) {
+          el.innerHTML = `<img src="${configs.logo}" style="width:100%;height:100%;object-fit:contain;border-radius:12px;" />`;
           el.style.background = "transparent";
         } else {
           el.innerHTML = `<i data-lucide="boxes"></i>`;
@@ -567,50 +585,73 @@ const App = (() => {
         }
       });
       renderIcons();
+
+      // 4. Fundo de Ecrã
+      const vid = document.getElementById("bg-video");
+      if (!configs.bg) {
+        document.body.classList.remove("custom-bg");
+        document.body.style.backgroundImage = "";
+        if (vid) { vid.style.display = "none"; vid.src = ""; }
+      } else {
+        document.body.classList.add("custom-bg");
+        if (configs.bgType === "video") {
+          document.body.style.backgroundImage = "none";
+          if (vid) { vid.src = configs.bg; vid.style.display = "block"; }
+        } else {
+          if (vid) { vid.style.display = "none"; vid.src = ""; }
+          document.body.style.backgroundImage = `url('${configs.bg}')`;
+        }
+      }
     },
+
+    setTheme: (nome) => {
+      Personalizacao.aplicarConfigs({ tema: nome });
+      const UID = localStorage.getItem("almox_usuario_uid");
+      if (window.firebaseCloud && UID && UID !== "teste_offline") {
+        window.firebaseCloud.guardarConfig(UID, "tema", nome);
+      }
+      Estoque.atualizarGraficos();
+    },
+
     uploadLogo: (e) => {
       const f = e.target.files[0];
       if (!f) return;
       const r = new FileReader();
       r.onload = (ev) => {
-        localStorage.setItem("almox_logo", ev.target.result);
-        Personalizacao.aplicarLogo(ev.target.result);
-        Utils.toast("Logotipo atualizado!");
+        Personalizacao.aplicarConfigs({ logo: ev.target.result });
+        const UID = localStorage.getItem("almox_usuario_uid");
+        if (window.firebaseCloud && UID && UID !== "teste_offline") {
+          window.firebaseCloud.guardarConfig(UID, "logo", ev.target.result);
+        }
+        Utils.toast("Logótipo sincronizado na nuvem!");
       };
       r.readAsDataURL(f);
     },
-    aplicarBg: (src, type) => {
-      const vid = document.getElementById("bg-video");
-      if (!src) {
-        document.body.classList.remove("custom-bg");
-        document.body.style.backgroundImage = "";
-        if (vid) { vid.style.display = "none"; vid.src = ""; }
-        return;
-      }
-      document.body.classList.add("custom-bg");
-      if (type === "video") {
-        document.body.style.backgroundImage = "none";
-        if (vid) { vid.src = src; vid.style.display = "block"; }
-      } else {
-        if (vid) { vid.style.display = "none"; vid.src = ""; }
-        document.body.style.backgroundImage = `url('${src}')`;
-      }
-    },
+
     uploadBg: (e) => {
       const f = e.target.files[0];
       if (!f) return;
       const isVid = f.type.startsWith("video/");
-      const url = URL.createObjectURL(f);
-      localStorage.setItem("almox_bg", url);
-      localStorage.setItem("almox_bg_type", isVid ? "video" : "image");
-      Personalizacao.aplicarBg(url, isVid ? "video" : "image");
-      Utils.toast("Plano de fundo aplicado!");
+      const r = new FileReader();
+      r.onload = (ev) => {
+        Personalizacao.aplicarConfigs({ bg: ev.target.result, bgType: isVid ? "video" : "image" });
+        const UID = localStorage.getItem("almox_usuario_uid");
+        if (window.firebaseCloud && UID && UID !== "teste_offline") {
+          window.firebaseCloud.guardarConfig(UID, "bg", ev.target.result);
+          window.firebaseCloud.guardarConfig(UID, "bgType", isVid ? "video" : "image");
+        }
+        Utils.toast("Fundo sincronizado na nuvem!");
+      };
+      r.readAsDataURL(f);
     },
+
     resetVisual: () => {
-      localStorage.removeItem("almox_logo");
-      localStorage.removeItem("almox_bg");
-      Personalizacao.aplicarLogo(null);
-      Personalizacao.aplicarBg(null);
+      Personalizacao.aplicarConfigs({ logo: null, bg: null, bgType: null });
+      const UID = localStorage.getItem("almox_usuario_uid");
+      if (window.firebaseCloud && UID && UID !== "teste_offline") {
+        window.firebaseCloud.guardarConfig(UID, "logo", null);
+        window.firebaseCloud.guardarConfig(UID, "bg", null);
+      }
       Utils.toast("Visual padrão restaurado.");
     }
   };
