@@ -820,35 +820,46 @@
       const auth = getAuth(app);
       const dbNuvem = getDatabase(app);
 
-      // Ponte global para o script.js comunicar com a Nuvem do Firebase
+      // Ponte global para o script.js comunicar 100% com a Nuvem do Firebase
       window.firebaseCloud = {
         auth,
         dbNuvem,
-        
-        // Lê todos os dados da pasta exclusiva do utilizador na nuvem
+
+        // Lê todos os dados da pasta exclusiva da conta na nuvem
         carregarTudo: async (uid) => {
           const snapshot = await get(ref(dbNuvem, `usuarios/${uid}`));
           return snapshot.exists() ? snapshot.val() : null;
         },
 
-        // Guarda um material ou registo de histórico na nuvem
+        // Guarda um material ou registro de histórico na conta
         guardarItem: async (uid, tabela, item) => {
           await set(ref(dbNuvem, `usuarios/${uid}/${tabela}/${item.id}`), item);
         },
 
+        // Apaga um item ou registro de histórico na conta
         apagarItem: async (uid, tabela, id) => {
           await remove(ref(dbNuvem, `usuarios/${uid}/${tabela}/${id}`));
         },
 
+        // Guarda a lista de categorias na conta
         guardarCategorias: async (uid, listaCategorias) => {
           await set(ref(dbNuvem, `usuarios/${uid}/categorias`), listaCategorias);
         },
-        
-        // Guarda configurações visuais na Nuvem (sem localStorage)
+
+        // Guarda configurações visuais (tema, zoom, logo, fundo) na conta e atualiza a foto do Login
         guardarConfig: async (uid, chave, valor) => {
           await set(ref(dbNuvem, `usuarios/${uid}/configuracoes/${chave}`), valor);
+          if (chave === "logo") {
+            const emailUser = auth.currentUser?.email || "";
+            const chaveEmail = emailUser.toLowerCase().replace(/[^a-z0-9]/g, "_");
+            if (chaveEmail) {
+              await set(ref(dbNuvem, `perfis_login/por_email/${chaveEmail}`), valor);
+            }
+            await set(ref(dbNuvem, `perfis_login/ultima_logo`), valor);
+          }
         },
 
+        // Escuta alterações em tempo real na conta logada
         escutarTempoReal: (uid, callback) => {
           const userRef = ref(dbNuvem, `usuarios/${uid}`);
           onValue(userRef, (snapshot) => {
@@ -859,7 +870,7 @@
         encerrarSessao: async () => {
           try { await signOut(auth); } catch (e) {}
         },
-        
+
         onChange: (callback) => onAuthStateChanged(auth, callback)
       };
     </script>
