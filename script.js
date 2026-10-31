@@ -631,12 +631,13 @@ const App = (() => {
       }
 
       const id = document.getElementById("mat-id").value;
+      const qtdInicial = parseFloat(document.getElementById("mat-qtd").value) || 0;
       const obj = {
         id: id || "MAT_" + Date.now(),
         codigo: document.getElementById("mat-codigo").value.trim(),
         nome: document.getElementById("mat-nome").value.trim(),
         categoria: document.getElementById("mat-categoria").value,
-        qtd: parseFloat(document.getElementById("mat-qtd").value) || 0,
+        qtd: qtdInicial,
         unidade: document.getElementById("mat-unidade").value,
         minimo: parseFloat(document.getElementById("mat-minimo").value) || 0,
         local: document.getElementById("mat-local").value.trim(),
@@ -644,8 +645,30 @@ const App = (() => {
       };
 
       DB.save("materiais", obj, () => {
+        // Se for um cadastro novo com quantidade maior que zero, regista no Histórico de Entradas
+        if (!id && qtdInicial > 0) {
+          const registoEntradaInicial = {
+            id: "ENT_" + Date.now(),
+            data: Utils.hojeISO(),
+            tipo: "ENTRADA",
+            setor: "Cadastro Inicial de Estoque",
+            responsavel: "Almoxarifado",
+            documento: "Estoque Inicial",
+            itens: [{
+              id: obj.id,
+              codigo: obj.codigo,
+              nome: obj.nome,
+              categoria: obj.categoria,
+              unidade: obj.unidade,
+              qtd: qtdInicial
+            }]
+          };
+          DB.save("historico", registoEntradaInicial, () => {
+            Historico.render();
+          });
+        }
         document.getElementById("modalMaterial").classList.remove("active");
-        Utils.toast(id ? "Material atualizado!" : "Material adicionado à prateleira!");
+        Utils.toast(id ? "Material atualizado!" : "Material adicionado à prateleira e registado nas Entradas!");
         Estoque.render();
       });
     },
@@ -1291,6 +1314,7 @@ const App = (() => {
     },
 
     exportarDocumentoWord: (lote) => {
+      const isEntrada = lote.tipo === "ENTRADA";
       let linhasHtml = "";
       let totalVolumes = 0;
 
@@ -1307,16 +1331,22 @@ const App = (() => {
         `;
       });
 
+      const tituloDoc = isEntrada ? "ENTRADA E REPOSIÇÃO DE MATERIAIS" : "SAÍDA DE MATERIAIS";
+      const labelSetor = isEntrada ? "FORNECEDOR:" : "SETOR DESTINO:";
+      const labelData = isEntrada ? "DATA DA ENTRADA:" : "DATA DA ENTREGA:";
+      const labelResp = isEntrada ? "REGISTADO POR:" : "RECEBIDO POR:";
+      const labelQtd = isEntrada ? "Qtd. Entrada" : "Qtd. Entregue";
+      const labelTotal = isEntrada ? "TOTAL DE VOLUMES RECEBIDOS:" : "TOTAL DE VOLUMES ENTREGUES:";
+
       const htmlWord = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head>
           <meta charset='utf-8'>
-          <title>Saída de Material</title>
+          <title>${tituloDoc}</title>
           <style>
             body { font-family: 'Calibri', 'Arial', sans-serif; color: #000; }
             .header-box { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 18px; }
             h1 { font-size: 15pt; margin: 0; text-transform: uppercase; }
-            h2 { font-size: 11pt; margin: 4px 0 0; color: #333; font-weight: normal; }
             h3 { font-size: 13pt; margin-top: 12px; text-decoration: underline; text-transform: uppercase; }
             .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
             .meta-table td { padding: 6px 8px; border: 1px solid #94a3b8; font-size: 10.5pt; }
@@ -1329,16 +1359,16 @@ const App = (() => {
         <body>
           <div class="header-box">
             <h1>SECRETARIA MUNICIPAL DE ASSISTÊNCIA SOCIAL</h1>
-            <h3>SAÍDA DE MATERIAIS</h3>
+            <h3>${tituloDoc}</h3>
           </div>
 
           <table class="meta-table">
             <tr>
-              <td style="width: 55%;"><strong>SETOR DESTINO:</strong> ${lote.setor}</td>
-              <td style="width: 45%;"><strong>DATA DA ENTREGA:</strong> ${Utils.formatDate(lote.data)}</td>
+              <td style="width: 55%;"><strong>${labelSetor}</strong> ${lote.setor}</td>
+              <td style="width: 45%;"><strong>${labelData}</strong> ${Utils.formatDate(lote.data)}</td>
             </tr>
             <tr>
-              <td><strong>RECEBIDO:</strong> ${lote.responsavel || "_______________________"}</td>
+              <td><strong>${labelResp}</strong> ${lote.responsavel && lote.responsavel !== "--" ? lote.responsavel : "Almoxarifado Central"}</td>
               <td><strong>DOCUMENTO REFERÊNCIA:</strong> ${lote.documento || lote.id}</td>
             </tr>
           </table>
@@ -1350,25 +1380,24 @@ const App = (() => {
                 <th style="width: 46%;">Especificação do Material</th>
                 <th style="width: 18%;">Categoria</th>
                 <th style="width: 12%;">Unid.</th>
-                <th style="width: 12%;">Qtd. Entregue</th>
+                <th style="width: 12%;">${labelQtd}</th>
               </tr>
             </thead>
             <tbody>
               ${linhasHtml}
               <tr class="total-row">
-                <td colspan="4" style="text-align: right;">TOTAL DE VOLUMES ENTREGUES:</td>
+                <td colspan="4" style="text-align: right;">${labelTotal}</td>
                 <td style="text-align: center;">${totalVolumes}</td>
               </tr>
             </tbody>
           </table>
-
 
           <br/><br/>
           <table style="width: 100%; border: none; margin-top: 35px; text-align: center;">
             <tr>
               <td style="width: 48%; border: none;">
                 ___________________________________________________<br/>
-                <strong>Maiara Cristina Lópes</strong><br/>
+                <strong>MAIARA CRISTINA LÓPES</strong><br/>
                 <span style="font-size: 9.5pt; color: #444;">Coordenadora do Centro de Qualificação</span>
               </td>
             </tr>
@@ -1377,9 +1406,11 @@ const App = (() => {
         </html>
       `;
 
-      const nomeLimpo = lote.setor.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 18);
-      Utils.solicitarSalvamentoWord(`Guia_Saida_${nomeLimpo}_${lote.data}`, htmlWord);
+      const prefixo = isEntrada ? "Guia_Entrada" : "Guia_Saida";
+      const nomeLimpo = (lote.setor || "Almoxarifado").replace(/[^a-zA-Z0-9]/g, "_").substring(0, 18);
+      Utils.solicitarSalvamentoWord(`${prefixo}_${nomeLimpo}_${lote.data}`, htmlWord);
     },
+
 
     gerarWordReposicao: () => {
       const criticos = state.materiais.filter((m) => !m.deleted && m.qtd <= m.minimo);
@@ -1431,7 +1462,7 @@ const App = (() => {
   }
   
   /* =========================================================
-     10. HISTÓRICO DE SAÍDAS + GERADOR WORD POR MÊS/ANO/TODOS
+     10. HISTÓRICO DE ENTRADA E SAÍDA + GERADOR WORD E ESTORNO
      ========================================================= */
   const Historico = {
     initFilters: () => {
@@ -1448,27 +1479,25 @@ const App = (() => {
       for (let y = 2024; y <= 2030; y++) {
         fA.innerHTML += `<option value="${y}">${y}</option>`;
       }
-      
-      // Define os valores padrão para o mês e ano atuais
-      const dataHoje = new Date();
-      const mesAtual = (dataHoje.getMonth() + 1).toString().padStart(2, "0");
-      const anoAtual = dataHoje.getFullYear().toString();
-      
-      fM.value = mesAtual;
-      fA.value = anoAtual;
 
+      const dataHoje = new Date();
+      fM.value = (dataHoje.getMonth() + 1).toString().padStart(2, "0");
+      fA.value = dataHoje.getFullYear().toString();
+
+      CustomSelect.init("hist-tipo");
       CustomSelect.init("hist-mes");
       CustomSelect.init("hist-ano");
     },
 
-    obterListaFiltrada: (apenasSaidas = false) => {
+    obterListaFiltrada: (tipoForcado = null) => {
+      const tipoSel = tipoForcado || document.getElementById("hist-tipo")?.value || "Todos";
       const mes = document.getElementById("hist-mes").value;
       const ano = document.getElementById("hist-ano").value;
       const busca = (document.getElementById("hist-busca").value || "").toLowerCase();
 
       return state.historico
         .filter((h) => {
-          if (apenasSaidas && h.tipo !== "SAIDA") return false;
+          if (tipoSel !== "Todos" && h.tipo !== tipoSel) return false;
           const [hA, hM] = (h.data || "").split("-");
           const matchM = mes === "Todos" || hM === mes;
           const matchA = ano === "Todos" || hA === ano;
@@ -1487,13 +1516,13 @@ const App = (() => {
       const container = document.getElementById("lista-historico-container");
       if (!container) return;
 
-      const lista = Historico.obterListaFiltrada(false);
+      const lista = Historico.obterListaFiltrada(null);
       container.innerHTML = "";
 
       if (lista.length === 0) {
         container.innerHTML = `
           <div class="card" style="text-align: center; padding: 45px;">
-            <p class="text-muted">Nenhuma movimentação encontrada para o filtro selecionado.</p>
+            <p class="text-muted">Nenhuma movimentação de entrada ou saída encontrada para o filtro selecionado.</p>
           </div>
         `;
         return;
@@ -1514,21 +1543,22 @@ const App = (() => {
                 ${isSaida ? "SAÍDA" : "ENTRADA / REPOSIÇÃO"}
               </span>
               <strong style="font-size: 16px; color: white;">${h.setor}</strong>
-              ${isSaida ? `<span style="font-size: 11px; color: var(--info);">Recebido por: ${h.responsavel}</span>` : ""}
+              ${isSaida ? `<span style="font-size: 11px; color: var(--info);">Recebido por: ${h.responsavel}</span>` : `<span style="font-size: 11px; color: var(--success);">Ref: ${h.documento || "Entrada"}</span>`}
             </div>
             <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;">
               ${resumoItens}
             </div>
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
-            ${
-              isSaida
-                ? `<button class="btn btn-outline btn-sm" style="border-color: var(--success); color: var(--success);" onclick="window.app.reemitirWord('${h.id}')">
-                    <i data-lucide="file-text"></i> Gerar Word (.doc)
-                   </button>`
-                : ""
-            }
-            <button class="btn-mini-icon del" onclick="window.app.excluirHistorico('${h.id}')" title="Estornar e Excluir">
+            <button
+              class="btn btn-outline btn-sm"
+              style="border-color: ${isSaida ? "var(--warning)" : "var(--success)"}; color: ${isSaida ? "#fde047" : "#6ee7b7"};"
+              onclick="window.app.reemitirWord('${h.id}')"
+              title="Gerar documento Word individual desta ${isSaida ? "Saída" : "Entrada"}"
+            >
+              <i data-lucide="file-text"></i> Word ${isSaida ? "Saída" : "Entrada"} (.doc)
+            </button>
+            <button class="btn-mini-icon del" onclick="window.app.excluirHistorico('${h.id}')" title="Apagar e Devolver ao Estoque">
               <i data-lucide="trash-2" style="width: 14px;"></i>
             </button>
           </div>
@@ -1538,11 +1568,16 @@ const App = (() => {
       renderIcons();
     },
 
-    // Gera um documento Word (.doc) consolidado das Saídas Filtradas (Mês, Ano, Todos os Meses, Todos os Anos)
-    gerarWordFiltrado: () => {
-      const saidas = Historico.obterListaFiltrada(true);
-      if (saidas.length === 0) {
-        return Utils.toast("Não há saídas registradas para o filtro de Mês/Ano atual!", "error");
+    // Gera Word consolidado (Total do Período) tanto para SAIDA quanto para ENTRADA
+    gerarWordConsolidadoPorTipo: (tipoMov) => {
+      const isEntrada = tipoMov === "ENTRADA";
+      const registos = Historico.obterListaFiltrada(tipoMov);
+
+      if (registos.length === 0) {
+        return Utils.toast(
+          `Não há ${isEntrada ? "entradas" : "saídas"} registadas para o período filtrado!`,
+          "error"
+        );
       }
 
       const mes = document.getElementById("hist-mes").value;
@@ -1553,14 +1588,14 @@ const App = (() => {
       let linhas = "";
       let totalVolumes = 0;
 
-      saidas.forEach((h) => {
+      registos.forEach((h) => {
         (h.itens || []).forEach((it) => {
           totalVolumes += parseFloat(it.qtd) || 0;
           linhas += `
             <tr>
               <td style="text-align: center;">${Utils.formatDate(h.data)}</td>
               <td><strong>${h.setor}</strong></td>
-              <td>${h.responsavel || "-"}</td>
+              <td>${isEntrada ? (h.documento || "Reposição") : (h.responsavel || "-")}</td>
               <td style="text-align: center;">${it.codigo || "-"}</td>
               <td>${it.nome}</td>
               <td style="text-align: center; font-weight: bold;">${it.qtd} ${it.unidade}</td>
@@ -1569,11 +1604,15 @@ const App = (() => {
         });
       });
 
+      const tituloRel = isEntrada
+        ? "RELATÓRIO GERAL DE ENTRADAS E REPOSIÇÕES DE MATERIAIS"
+        : "RELATÓRIO GERAL DE SAÍDAS DE MATERIAIS";
+
       const htmlWord = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
         <head>
           <meta charset='utf-8'>
-          <title>Relatório de Saídas de Materiais</title>
+          <title>${tituloRel}</title>
           <style>
             body { font-family: Calibri, Arial, sans-serif; color: #000; }
             h2, h3, h4 { text-align: center; margin: 4px 0; }
@@ -1584,24 +1623,24 @@ const App = (() => {
         </head>
         <body>
           <h2>SECRETARIA MUNICIPAL DE ASSISTÊNCIA SOCIAL</h2>
-          <h3>RELATÓRIODE SAÍDAS DE MATERIAIS</h3>
+          <h3>${tituloRel}</h3>
           <h4>PERÍODO: ${nomeMes} - ${nomeAno}</h4>
 
           <table>
             <thead>
               <tr>
                 <th style="width: 12%;">Data</th>
-                <th style="width: 22%;">Unidade / Setor</th>
-                <th style="width: 18%;">Solicitante</th>
+                <th style="width: 22%;">${isEntrada ? "Origem / Operação" : "Unidade / Setor"}</th>
+                <th style="width: 18%;">${isEntrada ? "Referência" : "Solicitante"}</th>
                 <th style="width: 8%;">Nº Item</th>
-                <th style="width: 28%;">Material Entregue</th>
+                <th style="width: 28%;">${isEntrada ? "Material Recebido" : "Material Entregue"}</th>
                 <th style="width: 12%;">Quantidade</th>
               </tr>
             </thead>
             <tbody>
               ${linhas}
               <tr style="background-color: #f1f5f9; font-weight: bold;">
-                <td colspan="5" style="text-align: right;">TOTAL GERAL DE VOLUMES ENTREGUES NO PERÍODO:</td>
+                <td colspan="5" style="text-align: right;">TOTAL GERAL DE VOLUMES ${isEntrada ? "RECEBIDOS" : "ENTREGUES"} NO PERÍODO:</td>
                 <td style="text-align: center;">${totalVolumes}</td>
               </tr>
             </tbody>
@@ -1610,30 +1649,74 @@ const App = (() => {
         </html>
       `;
 
-      Utils.solicitarSalvamentoWord(`Saidas_Almoxarifado_${nomeMes.replace(/\s+/g, "_")}_${nomeAno}`, htmlWord);
+      const prefixo = isEntrada ? "Entradas_Totais" : "Saidas_Totais";
+      Utils.solicitarSalvamentoWord(`${prefixo}_${nomeMes.replace(/\s+/g, "_")}_${nomeAno}`, htmlWord);
     },
+
+    gerarWordFiltrado: () => Historico.gerarWordConsolidadoPorTipo("SAIDA"),
+    gerarWordEntradasFiltradas: () => Historico.gerarWordConsolidadoPorTipo("ENTRADA"),
 
     reemitirWord: (id) => {
       const h = state.historico.find((x) => x.id === id);
       if (h) ListaSaidaWord.exportarDocumentoWord(h);
     },
 
-    excluirHistorico: (id) => {
+    // Apaga o registo do histórico e devolve (ou desconta) as quantidades no estoque do Firebase
+    excluirHistorico: async (id) => {
       const h = state.historico.find((x) => x.id === id);
       if (!h) return;
-      if (confirm("Deseja excluir este registro e estornar as quantidades no estoque?")) {
-        (h.itens || []).forEach((it) => {
-          const mat = state.materiais.find((m) => m.id === it.id || m.nome === it.nome);
+
+      const isSaida = h.tipo === "SAIDA";
+      const textoConfirm = isSaida
+        ? "Deseja apagar esta SAÍDA do histórico? Os materiais voltarão automaticamente para o estoque!"
+        : "Deseja apagar esta ENTRADA do histórico? A quantidade será descontada do saldo em estoque.";
+
+      if (confirm(textoConfirm)) {
+        for (const it of (h.itens || [])) {
+          const qtdMov = parseFloat(it.qtd) || 0;
+          let mat = state.materiais.find(
+            (m) => m.id === it.id || (m.nome || "").toLowerCase() === (it.nome || "").toLowerCase()
+          );
+
           if (mat) {
-            mat.qtd = h.tipo === "SAIDA" ? Number((mat.qtd + it.qtd).toFixed(2)) : Math.max(0, Number((mat.qtd - it.qtd).toFixed(2)));
-            DB.save("materiais", mat);
+            const saldoAtual = parseFloat(mat.qtd) || 0;
+            // Se era SAÍDA, soma de volta ao estoque (+). Se era ENTRADA, retira do estoque (-).
+            mat.qtd = isSaida
+              ? Number((saldoAtual + qtdMov).toFixed(2))
+              : Math.max(0, Number((saldoAtual - qtdMov).toFixed(2)));
+
+            // Se o material estava na lixeira e recebeu estoque de volta, restaura-o
+            if (isSaida && mat.deleted) {
+              mat.deleted = false;
+            }
+            await new Promise((res) => DB.save("materiais", mat, res));
+          } else if (isSaida) {
+            // Caso o item tivesse sido removido de vez, recria-o na prateleira com o saldo devolvido
+            const matRecriado = {
+              id: it.id || "MAT_" + Date.now(),
+              codigo: it.codigo || Estoque.gerarProximoCodigoLivre(),
+              nome: it.nome,
+              categoria: it.categoria || state.categorias[0] || "Escritório",
+              qtd: qtdMov,
+              unidade: it.unidade || "Unid.",
+              minimo: 5,
+              local: "Almoxarifado Geral",
+              deleted: false
+            };
+            await new Promise((res) => DB.save("materiais", matRecriado, res));
           }
-        });
-        DB.delete("historico", id, () => {
-          Utils.toast("Movimentação estornada!");
-          Estoque.render();
-          Historico.render();
-        });
+        }
+
+        await new Promise((res) => DB.delete("historico", id, res));
+        Utils.toast(
+          isSaida
+            ? "Saída apagada! Os materiais voltaram para o estoque."
+            : "Entrada apagada e saldo atualizado no estoque!"
+        );
+        Estoque.render();
+        Historico.render();
+        RelatoriosA4.render();
+        Estoque.atualizarGraficos();
       }
     }
   };
@@ -1650,10 +1733,11 @@ const App = (() => {
 
       const ativos = state.materiais.filter((m) => !m.deleted);
 
-      // Atualiza o texto do botão Word conforme a opção selecionada
       if (btnWord) {
         if (tipo === "HISTORICO_SAIDAS") {
           btnWord.innerHTML = `<i data-lucide="file-text"></i> Gerar Word: Relatório de Saídas (.doc)`;
+        } else if (tipo === "HISTORICO_ENTRADAS") {
+          btnWord.innerHTML = `<i data-lucide="file-text"></i> Gerar Word: Relatório de Entradas (.doc)`;
         } else if (tipo === "ESTOQUE_GERAL") {
           btnWord.innerHTML = `<i data-lucide="file-text"></i> Gerar Word: Estoque Completo (.doc)`;
         } else {
@@ -1688,6 +1772,28 @@ const App = (() => {
             <tbody>${rows || '<tr><td colspan="6" style="text-align:center;">Nenhum registro encontrado.</td></tr>'}</tbody>
           </table>
         `;
+      } else if (tipo === "HISTORICO_ENTRADAS") {
+        document.getElementById("print-titulo").textContent = "RELATÓRIO GERAL DE ENTRADAS E REPOSIÇÕES";
+        let rows = "";
+        state.historico.filter((h) => h.tipo === "ENTRADA").forEach((h) => {
+          const desc = (h.itens || []).map((i) => `${i.qtd} ${i.unidade} ${i.nome}`).join(", ");
+          rows += `
+            <tr>
+              <td style="text-align:center;">${Utils.formatDate(h.data)}</td>
+              <td><strong>${h.setor}</strong></td>
+              <td>${h.documento || "Entrada"}</td>
+              <td>${desc}</td>
+            </tr>
+          `;
+        });
+        wrap.innerHTML = `
+          <table class="print-table">
+            <thead>
+              <tr><th>Data</th><th>Origem / Operação</th><th>Referência</th><th>Materiais Recebidos</th></tr>
+            </thead>
+            <tbody>${rows || '<tr><td colspan="4" style="text-align:center;">Nenhuma entrada registrada.</td></tr>'}</tbody>
+          </table>
+        `;
       } else {
         document.getElementById("print-titulo").textContent = "RELATÓRIO GERAL DE SAÍDAS";
         let rows = "";
@@ -1705,7 +1811,7 @@ const App = (() => {
         wrap.innerHTML = `
           <table class="print-table">
             <thead>
-              <tr><th>Data</th><th>SetorDestino</th><th>Recebedor</th><th>Materiais Entregues</th></tr>
+              <tr><th>Data</th><th>Setor Destino</th><th>Recebedor</th><th>Materiais Entregues</th></tr>
             </thead>
             <tbody>${rows || '<tr><td colspan="4" style="text-align:center;">Nenhuma saída registrada.</td></tr>'}</tbody>
           </table>
@@ -1713,7 +1819,6 @@ const App = (() => {
       }
     },
 
-    // Gera o arquivo Word (.doc) exatamente da opção que está selecionada na tela de Relatórios
     gerarWordOpcaoAtual: () => {
       const tipo = document.getElementById("rel-tipo").value;
       const titulo = document.getElementById("print-titulo").textContent;
@@ -1743,6 +1848,7 @@ const App = (() => {
 
       const mapNome = {
         HISTORICO_SAIDAS: `Relatorio_Saidas_${Utils.hojeISO()}`,
+        HISTORICO_ENTRADAS: `Relatorio_Entradas_${Utils.hojeISO()}`,
         ESTOQUE_GERAL: `Estoque_Completo_${Utils.hojeISO()}`,
         ESTOQUE_CRITICO: `Materiais_Criticos_${Utils.hojeISO()}`
       };
@@ -1953,6 +2059,7 @@ const App = (() => {
     gerarWordReposicao: ListaSaidaWord.gerarWordReposicao,
     renderHistorico: Historico.render,
     gerarWordHistoricoFiltrado: Historico.gerarWordFiltrado,
+    gerarWordEntradasFiltradas: Historico.gerarWordEntradasFiltradas,
     reemitirWord: Historico.reemitirWord,
     excluirHistorico: Historico.excluirHistorico,
     renderRelatorioA4: RelatoriosA4.render,
