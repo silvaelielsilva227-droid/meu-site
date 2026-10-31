@@ -1145,3 +1145,28 @@ select.input-modern {
     print-color-adjust: exact;
   }
 }
+/* Responsividade para ecrãs menores */
+@media (max-width: 980px) {
+  .charts-row, .form-grid-3, .util-grid, .filter-strip-bar {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estilo dos campos de E-mail e Palavra-passe no Ecrã de Login */
+.login-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 13px 16px;
+  color: white;
+  font-size: 14px;
+  font-family: var(--font-body);
+  margin-bottom: 12px;
+  transition: 0.25s;
+}
+
+.login-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
