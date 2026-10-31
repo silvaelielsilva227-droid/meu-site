@@ -790,7 +790,86 @@
         </section>
       </main>
     </div>
+    <!-- =========================================================
+         CONEXÃO COM A NUVEM: FIREBASE REALTIME DATABASE
+         ========================================================= -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+      import {
+        getDatabase,
+        ref,
+        set,
+        get,
+        remove,
+        onValue
+      } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-database.js";
+
+      // Configuração do seu projeto Firebase
+      const firebaseConfig = {
+        apiKey: "AIzaSyDnwzbGPvJvZ4iHEptAXWSp2Dg4kn--UCk",
+        authDomain: "banco01-1aa95.firebaseapp.com",
+        databaseURL: "https://banco01-1aa95-default-rtdb.firebaseio.com",
+        projectId: "banco01-1aa95",
+        storageBucket: "banco01-1aa95.firebasestorage.app",
+        messagingSenderId: "52093411951",
+        appId: "1:52093411951:web:d7b5af7862982266fe239a"
+      };
+
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const dbNuvem = getDatabase(app);
+
+      // Ponte global para o script.js comunicar com a Nuvem do Firebase
+      window.firebaseCloud = {
+         auth,
+        dbNuvem,
+        obterUid: () => auth.currentUser?.uid || localStorage.getItem("almox_usuario_uid") || null,
+
+        // Lê todos os dados da pasta exclusiva do utilizador na nuvem
+        carregarTudo: async (uid) => {
+          const snapshot = await get(ref(dbNuvem, `usuarios/${uid}`));
+          return snapshot.exists() ? snapshot.val() : null;
+        },
+
+        // Guarda um material ou registo de histórico na nuvem
+        guardarItem: async (uid, tabela, item) => {
+          await set(ref(dbNuvem, `usuarios/${uid}/${tabela}/${item.id}`), item);
+        },
+
+        // Apaga um item ou registo de histórico na nuvem
+        apagarItem: async (uid, tabela, id) => {
+          await remove(ref(dbNuvem, `usuarios/${uid}/${tabela}/${id}`));
+        },
+
+        // Guarda a lista de categorias personalizadas na nuvem
+        guardarCategorias: async (uid, listaCategorias) => {
+          await set(ref(dbNuvem, `usuarios/${uid}/categorias`), listaCategorias);
+        },
+
+        // Escuta alterações em tempo real (sincroniza vários dispositivos abertos)
+        escutarTempoReal: (uid, callback) => {
+          const userRef = ref(dbNuvem, `usuarios/${uid}`);
+          onValue(userRef, (snapshot) => {
+            callback(snapshot.exists() ? snapshot.val() : {});
+          });
+        },
+
+        encerrarSessao: async () => {
+          try { await signOut(auth); } catch (e) {}
+        }
+      };
+
+      // Atualiza o UID assim que o Firebase confirma a sessão ativa
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          localStorage.setItem("almox_usuario_uid", user.uid);
+          localStorage.setItem("almox_usuario_email", user.email);
+        }
+      });
+    </script>
 
     <script src="script.js"></script>
+
   </body>
 </html>
