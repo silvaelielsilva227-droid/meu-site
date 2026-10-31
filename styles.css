@@ -1075,27 +1075,7 @@ select.input-modern {
    8. PRÉVIA VISUAL DE FOLHA A4 NA TELA E IMPRESSÃO OFICIAL
    ========================================================= */
 
-/* Estilo da folha A4 visível diretamente na tela (SIMULADOR) */
-#area-relatorio-print {
-  background: white !important;
-  color: black !important;
-  
-  /* A MÁGICA ESTÁ AQUI: Trava a largura e altura na tela para parecer papel */
-  width: 100%;
-  max-width: 210mm !important; 
-  min-height: 297mm !important; 
-  
-  margin: 0 auto 30px auto !important; /* Centraliza a folha no ecrã */
-  padding: 15mm 20mm !important;
-  border-radius: 6px !important;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85) !important; /* Sombra estilo folha solta */
-}
-
-/* Força todo o texto dentro da prévia a ficar preto */
-#area-relatorio-print * {
-  color: black !important;
-}
-
+/* Estilos para a Tabela do Relatório na Tela (Prévia A4) */
 #area-relatorio-print .print-table {
   width: 100%;
   border-collapse: collapse;
@@ -1103,24 +1083,23 @@ select.input-modern {
   font-family: var(--font-body);
 }
 
-/* Bordas e estilo de tabela limpo para o ecrã */
 #area-relatorio-print .print-table th,
 #area-relatorio-print .print-table td {
-  border: 1px solid #94a3b8 !important;
-  padding: 8px 12px !important;
-  font-size: 12px !important;
-  color: #1e293b !important;
+  border: 1px solid #cbd5e1; /* Borda cinza clara para visibilidade na tela */
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #1e293b; /* Texto escuro para melhor contraste no fundo branco */
 }
 
 #area-relatorio-print .print-table th {
-  background-color: #e2e8f0 !important;
-  font-weight: 700 !important;
+  background-color: #f1f5f9;
+  font-weight: 700;
   text-transform: uppercase;
-  color: #0f172a !important;
+  color: #334155;
 }
 
 #area-relatorio-print .print-table tbody tr:nth-child(even) {
-  background-color: #f8fafc !important;
+  background-color: #f8fafc; /* Linhas zebradas suaves */
 }
 
 
