@@ -822,10 +822,9 @@
 
       // Ponte global para o script.js comunicar com a Nuvem do Firebase
       window.firebaseCloud = {
-         auth,
+        auth,
         dbNuvem,
-        obterUid: () => auth.currentUser?.uid || localStorage.getItem("almox_usuario_uid") || null,
-
+        
         // Lê todos os dados da pasta exclusiva do utilizador na nuvem
         carregarTudo: async (uid) => {
           const snapshot = await get(ref(dbNuvem, `usuarios/${uid}`));
@@ -837,17 +836,19 @@
           await set(ref(dbNuvem, `usuarios/${uid}/${tabela}/${item.id}`), item);
         },
 
-        // Apaga um item ou registo de histórico na nuvem
         apagarItem: async (uid, tabela, id) => {
           await remove(ref(dbNuvem, `usuarios/${uid}/${tabela}/${id}`));
         },
 
-        // Guarda a lista de categorias personalizadas na nuvem
         guardarCategorias: async (uid, listaCategorias) => {
           await set(ref(dbNuvem, `usuarios/${uid}/categorias`), listaCategorias);
         },
+        
+        // Guarda configurações visuais na Nuvem (sem localStorage)
+        guardarConfig: async (uid, chave, valor) => {
+          await set(ref(dbNuvem, `usuarios/${uid}/configuracoes/${chave}`), valor);
+        },
 
-        // Escuta alterações em tempo real (sincroniza vários dispositivos abertos)
         escutarTempoReal: (uid, callback) => {
           const userRef = ref(dbNuvem, `usuarios/${uid}`);
           onValue(userRef, (snapshot) => {
@@ -857,16 +858,10 @@
 
         encerrarSessao: async () => {
           try { await signOut(auth); } catch (e) {}
-        }
+        },
+        
+        onChange: (callback) => onAuthStateChanged(auth, callback)
       };
-
-      // Atualiza o UID assim que o Firebase confirma a sessão ativa
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          localStorage.setItem("almox_usuario_uid", user.uid);
-          localStorage.setItem("almox_usuario_email", user.email);
-        }
-      });
     </script>
 
     <script src="script.js"></script>
