@@ -1,7 +1,7 @@
 /* =========================================================
    1. UTILITÁRIOS DE ZOOM E ATALHOS DE TECLADO (F11, CTRL+K, ESC)
    ========================================================= */
-let nivelZoom = 0; // Removido do localStorage
+let nivelZoom = 0;
 function aplicarZoom(mudanca, salvarNaNuvem = true) {
   nivelZoom = Math.min(3, Math.max(-2, nivelZoom + mudanca));
   if (typeof nw !== "undefined") {
@@ -9,10 +9,10 @@ function aplicarZoom(mudanca, salvarNaNuvem = true) {
   } else {
     document.body.style.zoom = 1 + nivelZoom * 0.08;
   }
-  
-  const USER_UID = localStorage.getItem("almox_usuario_uid");
-  if (salvarNaNuvem && window.firebaseCloud && USER_UID && USER_UID !== "teste_offline") {
-    window.firebaseCloud.guardarConfig(USER_UID, "zoom", nivelZoom);
+
+  const uidAtivo = window.firebaseCloud?.auth?.currentUser?.uid;
+  if (salvarNaNuvem && window.firebaseCloud && uidAtivo) {
+    window.firebaseCloud.guardarConfig(uidAtivo, "zoom", nivelZoom);
   }
 }
 
@@ -38,10 +38,8 @@ document.addEventListener("keydown", (e) => {
 });
 
 const App = (() => {
-  // 1. Identifica qual usuário está logado (ou usa "teste_offline" se aberto direto sem login)
-  const USER_UID = localStorage.getItem("almox_usuario_uid") || "teste_offline";
-  const NOME_BANCO_USUARIO = `AlmoxarifadoProDB_${USER_UID}`;
-  const CHAVE_CATEGORIAS_USUARIO = `almox_categorias_${USER_UID}`;
+  // O ID da conta vem 100% do Firebase Authentication (isolado por conta e não por aparelho)
+  let USER_UID = null;
 
   const UNIDADES_RAPIDAS = [
     "CRAS",
@@ -61,20 +59,15 @@ const App = (() => {
     "Informática"
   ];
 
-  // 2. Lista vazia: garante que toda conta nova comece com o banco de dados 100% limpo!
-  const MATERIAIS_INICIAIS = [];
-
   const state = {
-    db: null,
     materiais: [],
     historico: [],
-    categorias: [],
+    categorias: [...CATEGORIAS_INICIAIS],
     categoriaAtiva: "Todas",
     termoBusca: "",
     wordPendenteHtml: "",
     charts: { unidades: null, categorias: null }
   };
-
   // 3. Carrega as categorias exclusivas deste usuário
   try {
     const salvas = localStorage.getItem(CHAVE_CATEGORIAS_USUARIO);
@@ -251,182 +244,97 @@ const App = (() => {
     }
   };
 
-  /* =========================================================
-     5. BANCO DE DADOS NA NUVEM (FIREBASE) + SALVAGUARDA LOCAL
+    /* =========================================================
+     5. BANCO DE DADOS 100% NA NUVEM (FIREBASE POR CONTA)
      ========================================================= */
   const DB = {
-    usandoNuvem: false,
-
     init: (cb) => {
-      // 1. Abre também o banco local como cache/salvaguarda offline
-      const req = indexedDB.open(NOME_BANCO_USUARIO, 1);
-      req.onupgradeneeded = (e) => {
-        const db = e.target.result;
-        if (!db.objectStoreNames.contains("materiais")) {
-          db.createObjectStore("materiais", { keyPath: "id" });
-        }
-        if (!db.objectStoreNames.contains("historico")) {
-          db.createObjectStore("historico", { keyPath: "id" });
-        }
-      };
-      req.onsuccess = (e) => {
-        state.db = e.target.result;
-        DB.conectarNuvemOuLocal(cb);
-      };
-      req.onerror = () => {
-        DB.conectarNuvemOuLocal(cb);
-      };
-    },
+      // Aguarda o Firebase Authentication identificar qual conta está logada
+      let tentativas = 0;
+      const aguardarPonte = setInterval(() => {
+        tentativas++;
+        if (window.firebaseCloud) {
+          clearInterval(aguardarPonte);
+          window.firebaseCloud.onChange((user) => {
+            if (!user) {
+              // Se não estiver logado em nenhuma conta, envia para a tela de login
+              window.location.href = "login.html";
+              return;
+            }
 
-    conectarNuvemOuLocal: (cb) => {
-      // Se for conta real logada (não "teste_offline"), aguarda a ponte do Firebase
-      if (USER_UID !== "teste_offline") {
-        let tentativas = 0;
-        const aguardarFirebase = setInterval(async () => {
-          tentativas++;
-          if (window.firebaseCloud) {
-            clearInterval(aguardarFirebase);
-            DB.usandoNuvem = true;
-            await DB.load(cb);
+            USER_UID = user.uid;
 
-            // Ativa atualização em tempo real entre aparelhos diferentes
+            // Escuta e sincroniza 100% da pasta exclusiva desta conta no Firebase
             window.firebaseCloud.escutarTempoReal(USER_UID, (dadosNuvem) => {
               state.materiais = dadosNuvem.materiais ? Object.values(dadosNuvem.materiais) : [];
               state.historico = dadosNuvem.historico ? Object.values(dadosNuvem.historico) : [];
-              
+
               if (dadosNuvem.categorias && Array.isArray(dadosNuvem.categorias)) {
                 state.categorias = dadosNuvem.categorias;
-                localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
-                Categorias.renderPillsESelects();
+              } else {
+                state.categorias = [...CATEGORIAS_INICIAIS];
               }
 
-              // NOVO: Puxa as configurações visuais diretamente da nuvem
-              if (dadosNuvem.configuracoes) {
-                Personalizacao.aplicarConfigs(dadosNuvem.configuracoes);
-              }
+              // Aplica a foto de perfil/logo, tema, papel de parede e zoom salvos na conta
+              Personalizacao.aplicarConfigs(dadosNuvem.configuracoes || {});
 
+              Categorias.renderPillsESelects();
               Estoque.render();
               Historico.render();
               RelatoriosA4.render();
               Estoque.atualizarGraficos();
             });
-          } else if (tentativas > 25) {
-            // Se estiver sem internet, usa o banco local como fallback
-            clearInterval(aguardarFirebase);
-            DB.loadLocal(cb);
-          }
-        }, 100);
-      } else {
-        // Modo de teste offline direto no computador
-        DB.loadLocal(cb);
-      }
-    },
 
-    load: async (cb) => {
-      if (DB.usandoNuvem && window.firebaseCloud && USER_UID !== "teste_offline") {
-        try {
-          const dados = await window.firebaseCloud.carregarTudo(USER_UID);
-          if (dados) {
-            state.materiais = dados.materiais ? Object.values(dados.materiais) : [];
-            state.historico = dados.historico ? Object.values(dados.historico) : [];
-            if (dados.categorias && Array.isArray(dados.categorias)) {
-              state.categorias = dados.categorias;
-              localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
-              Categorias.renderPillsESelects();
-            }
-          } else {
-            // Conta nova na nuvem: começa 100% limpa!
-            state.materiais = [];
-            state.historico = [];
-          }
-          if (cb) cb();
-          return;
-        } catch (err) {
-          console.warn("Falha ao ler da nuvem, a usar cache local:", err);
+            if (cb) cb();
+          });
+        } else if (tentativas > 50) {
+          clearInterval(aguardarPonte);
+          Utils.toast("Erro ao conectar com o servidor Firebase.", "error");
         }
-      }
-      DB.loadLocal(cb);
-    },
-
-    loadLocal: (cb) => {
-      if (!state.db) { if (cb) cb(); return; }
-      const tx = state.db.transaction(["materiais", "historico"], "readonly");
-      const p1 = new Promise((res) => {
-        tx.objectStore("materiais").getAll().onsuccess = (e) => {
-          state.materiais = e.target.result || [];
-          res();
-        };
-      });
-      const p2 = new Promise((res) => {
-        tx.objectStore("historico").getAll().onsuccess = (e) => {
-          state.historico = e.target.result || [];
-          res();
-        };
-      });
-      Promise.all([p1, p2]).then(() => {
-        if (cb) cb();
-      });
+      }, 100);
     },
 
     save: async (store, obj, cb) => {
-      // Atualiza o estado em memória imediatamente
       const arr = state[store];
       const i = arr.findIndex((x) => x.id === obj.id);
       if (i > -1) arr[i] = obj;
       else arr.push(obj);
 
-      // 1. Guarda na Nuvem do Firebase (se o utilizador estiver autenticado)
-      if (DB.usandoNuvem && window.firebaseCloud && USER_UID !== "teste_offline") {
+      if (window.firebaseCloud && USER_UID) {
         try {
           await window.firebaseCloud.guardarItem(USER_UID, store, obj);
         } catch (e) {
-          Utils.toast("Erro ao sincronizar item com a nuvem.", "error");
+          Utils.toast("Erro ao salvar na nuvem do Firebase.", "error");
         }
       }
-
-      // 2. Guarda também na cache local do aparelho
-      if (state.db) {
-        const tx = state.db.transaction([store], "readwrite");
-        tx.objectStore(store).put(obj);
-        tx.oncomplete = () => { if (cb) cb(); };
-      } else if (cb) {
-        cb();
-      }
+      if (cb) cb();
     },
 
     delete: async (store, id, cb) => {
       state[store] = state[store].filter((x) => x.id !== id);
 
-      // 1. Apaga na Nuvem do Firebase
-      if (DB.usandoNuvem && window.firebaseCloud && USER_UID !== "teste_offline") {
+      if (window.firebaseCloud && USER_UID) {
         try {
           await window.firebaseCloud.apagarItem(USER_UID, store, id);
         } catch (e) {
-          Utils.toast("Erro ao remover item na nuvem.", "error");
+          Utils.toast("Erro ao remover item da nuvem.", "error");
         }
       }
-
-      // 2. Apaga na cache local
-      if (state.db) {
-        const tx = state.db.transaction([store], "readwrite");
-        tx.objectStore(store).delete(id);
-        tx.oncomplete = () => { if (cb) cb(); };
-      } else if (cb) {
-        cb();
-      }
+      if (cb) cb();
     }
   };
 
   /* =========================================================
-     6. GESTÃO DE CATEGORIAS DINÂMICAS
+     6. GESTÃO DE CATEGORIAS DINÂMICAS (SALVAS NA CONTA)
      ========================================================= */
   const Categorias = {
     salvarLocal: () => {
-      localStorage.setItem(CHAVE_CATEGORIAS_USUARIO, JSON.stringify(state.categorias));
-      if (window.firebaseCloud && USER_UID !== "teste_offline") {
+      if (window.firebaseCloud && USER_UID) {
         window.firebaseCloud.guardarCategorias(USER_UID, state.categorias);
       }
     },
+
+  
 
     renderPillsESelects: () => {
       // 1. Pílulas na barra da Prateleira
@@ -524,57 +432,47 @@ const App = (() => {
   };
 
   const Security = {
-    init: () => {
-      // Como você está a testar offline, o init não faz nada para não bloquear a tela.
-      // Futuramente, podemos colocar aqui um código para redirecionar para "login.html" se a pessoa não estiver logada.
-      console.log("Sistema Almoxarifado inicializado. Modo de teste offline ativo.");
-    },
-
+    init: () => {},
     logout: async () => {
       if (window.firebaseCloud) {
         await window.firebaseCloud.encerrarSessao();
       }
-      localStorage.removeItem("almox_usuario_uid");
-      localStorage.removeItem("almox_usuario_email");
       Utils.toast("Sessão encerrada.");
       setTimeout(() => {
         window.location.href = "login.html";
-      }, 1000);
+      }, 800);
     }
   };
-  
+
   const Personalizacao = {
-    init: () => {
-      // O init visual agora é feito na Nuvem, disparado no escutarTempoReal do DB
-    },
-    
+    init: () => {},
+
     aplicarConfigs: (configs) => {
       if (!configs) return;
 
-      // 1. Tema
-      if (configs.tema) {
-        const paletas = {
-          indigo: { m: "#6366f1", g: "rgba(99,102,241,0.25)" },
-          emerald: { m: "#10b981", g: "rgba(16,185,129,0.25)" },
-          ruby: { m: "#f43f5e", g: "rgba(244,63,94,0.25)" },
-          gold: { m: "#f59e0b", g: "rgba(245,158,11,0.25)" },
-          ocean: { m: "#0ea5e9", g: "rgba(14,165,233,0.25)" },
-          neon: { m: "#d946ef", g: "rgba(217,70,239,0.25)" }
-        };
-        if (paletas[configs.tema]) {
-          document.documentElement.style.setProperty("--accent", paletas[configs.tema].m);
-          document.documentElement.style.setProperty("--accent-glow", paletas[configs.tema].g);
-          document.querySelectorAll(".theme-btn").forEach((b) => b.classList.toggle("active", b.dataset.theme === configs.tema));
-        }
+      // 1. Tema salvo na conta
+      const tema = configs.tema || "indigo";
+      const paletas = {
+        indigo: { m: "#6366f1", g: "rgba(99,102,241,0.25)" },
+        emerald: { m: "#10b981", g: "rgba(16,185,129,0.25)" },
+        ruby: { m: "#f43f5e", g: "rgba(244,63,94,0.25)" },
+        gold: { m: "#f59e0b", g: "rgba(245,158,11,0.25)" },
+        ocean: { m: "#0ea5e9", g: "rgba(14,165,233,0.25)" },
+        neon: { m: "#d946ef", g: "rgba(217,70,239,0.25)" }
+      };
+      if (paletas[tema]) {
+        document.documentElement.style.setProperty("--accent", paletas[tema].m);
+        document.documentElement.style.setProperty("--accent-glow", paletas[tema].g);
+        document.querySelectorAll(".theme-btn").forEach((b) => b.classList.toggle("active", b.dataset.theme === tema));
       }
 
-      // 2. Zoom
+      // 2. Zoom salvo na conta
       if (configs.zoom !== undefined) {
         nivelZoom = parseFloat(configs.zoom);
-        aplicarZoom(0, false); // Aplica sem disparar nova gravação
+        aplicarZoom(0, false);
       }
 
-      // 3. Logo
+      // 3. Foto de Perfil / Logo salva na conta
       document.querySelectorAll(".white-label-target").forEach((el) => {
         if (configs.logo) {
           el.innerHTML = `<img src="${configs.logo}" style="width:100%;height:100%;object-fit:contain;border-radius:12px;" />`;
@@ -586,7 +484,7 @@ const App = (() => {
       });
       renderIcons();
 
-      // 4. Fundo de Ecrã
+      // 4. Papel de Parede salvo na conta
       const vid = document.getElementById("bg-video");
       if (!configs.bg) {
         document.body.classList.remove("custom-bg");
@@ -606,9 +504,8 @@ const App = (() => {
 
     setTheme: (nome) => {
       Personalizacao.aplicarConfigs({ tema: nome });
-      const UID = localStorage.getItem("almox_usuario_uid");
-      if (window.firebaseCloud && UID && UID !== "teste_offline") {
-        window.firebaseCloud.guardarConfig(UID, "tema", nome);
+      if (window.firebaseCloud && USER_UID) {
+        window.firebaseCloud.guardarConfig(USER_UID, "tema", nome);
       }
       Estoque.atualizarGraficos();
     },
@@ -617,13 +514,13 @@ const App = (() => {
       const f = e.target.files[0];
       if (!f) return;
       const r = new FileReader();
-      r.onload = (ev) => {
-        Personalizacao.aplicarConfigs({ logo: ev.target.result });
-        const UID = localStorage.getItem("almox_usuario_uid");
-        if (window.firebaseCloud && UID && UID !== "teste_offline") {
-          window.firebaseCloud.guardarConfig(UID, "logo", ev.target.result);
+      r.onload = async (ev) => {
+        const base64Logo = ev.target.result;
+        Personalizacao.aplicarConfigs({ logo: base64Logo });
+        if (window.firebaseCloud && USER_UID) {
+          await window.firebaseCloud.guardarConfig(USER_UID, "logo", base64Logo);
+          Utils.toast("Foto/Logo salva na sua conta e sincronizada com o Login!");
         }
-        Utils.toast("Logótipo sincronizado na nuvem!");
       };
       r.readAsDataURL(f);
     },
@@ -633,28 +530,27 @@ const App = (() => {
       if (!f) return;
       const isVid = f.type.startsWith("video/");
       const r = new FileReader();
-      r.onload = (ev) => {
+      r.onload = async (ev) => {
         Personalizacao.aplicarConfigs({ bg: ev.target.result, bgType: isVid ? "video" : "image" });
-        const UID = localStorage.getItem("almox_usuario_uid");
-        if (window.firebaseCloud && UID && UID !== "teste_offline") {
-          window.firebaseCloud.guardarConfig(UID, "bg", ev.target.result);
-          window.firebaseCloud.guardarConfig(UID, "bgType", isVid ? "video" : "image");
+        if (window.firebaseCloud && USER_UID) {
+          await window.firebaseCloud.guardarConfig(USER_UID, "bg", ev.target.result);
+          await window.firebaseCloud.guardarConfig(USER_UID, "bgType", isVid ? "video" : "image");
+          Utils.toast("Papel de parede salvo na sua conta!");
         }
-        Utils.toast("Fundo sincronizado na nuvem!");
       };
       r.readAsDataURL(f);
     },
 
-    resetVisual: () => {
+    resetVisual: async () => {
       Personalizacao.aplicarConfigs({ logo: null, bg: null, bgType: null });
-      const UID = localStorage.getItem("almox_usuario_uid");
-      if (window.firebaseCloud && UID && UID !== "teste_offline") {
-        window.firebaseCloud.guardarConfig(UID, "logo", null);
-        window.firebaseCloud.guardarConfig(UID, "bg", null);
+      if (window.firebaseCloud && USER_UID) {
+        await window.firebaseCloud.guardarConfig(USER_UID, "logo", null);
+        await window.firebaseCloud.guardarConfig(USER_UID, "bg", null);
       }
-      Utils.toast("Visual padrão restaurado.");
+      Utils.toast("Visual padrão restaurado na conta.");
     }
   };
+  
 
   /* =========================================================
      8. PRATELEIRA DE ESTOQUE, BLOQUEIO DE Nº REPETIDO E REPOSIÇÃO COM UNIDADE
