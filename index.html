@@ -466,19 +466,19 @@
         <nav class="dock-nav">
           <button class="dock-pill active" data-target="view-estoque" onclick="window.app.navigate('view-estoque')">
             <i data-lucide="package"></i>
-            <span>Prateleira & Estoque</span>
+            <span>Estoque</span>
           </button>
           <button class="dock-pill" data-target="view-historico" onclick="window.app.navigate('view-historico')">
             <i data-lucide="clipboard-list"></i>
-            <span>Histórico de Saídas</span>
+            <span>Entradas e Saídas</span>
           </button>
           <button class="dock-pill" data-target="view-painel" onclick="window.app.navigate('view-painel')">
             <i data-lucide="bar-chart-3"></i>
-            <span>Painel & Gráficos</span>
+            <span>Gráficos</span>
           </button>
           <button class="dock-pill" data-target="view-relatorios" onclick="window.app.navigate('view-relatorios')">
             <i data-lucide="printer"></i>
-            <span>Relatórios A4</span>
+            <span>Relatórios</span>
           </button>
         </nav>
 
@@ -626,33 +626,47 @@
         </section>
 
         <!-- =========================================================
-             VISÃO 2: HISTÓRICO DE SAÍDAS + EXPORTAÇÃO WORD POR MÊS/ANO
+             VISÃO 2: HISTÓRICO DE ENTRADA E SAÍDA + EXPORTAÇÃO WORD
              ========================================================= -->
         <section id="view-historico" class="view">
           <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
             <div>
-              <h2 class="page-title">Histórico de Saídas e Entregas</h2>
-              <p class="text-muted">Filtre por mês, ano ou "Todos" e gere o documento Word consolidado das saídas ou de um pedido individual.</p>
+              <h2 class="page-title">Entradas e Saídas</h2>
+              <p class="text-muted">Filtre por tipo, mês ou ano e gere o documento Word consolidado (Entradas ou Saídas) ou de uma movimentação individual.</p>
             </div>
             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+              <button
+                class="btn btn-outline"
+                style="border-color: var(--success); color: #6ee7b7;"
+                onclick="window.app.gerarWordEntradasFiltradas()"
+              >
+                <i data-lucide="file-plus-2"></i> Gerar Word: Entradas Totais (.doc)
+              </button>
               <button
                 class="btn btn-outline"
                 style="border-color: var(--info); color: #a5f3fc;"
                 onclick="window.app.gerarWordHistoricoFiltrado()"
               >
-                <i data-lucide="file-text"></i> Gerar Word das Saídas Filtradas (.doc)
+                <i data-lucide="file-text"></i> Gerar Word: Saídas Totais (.doc)
               </button>
               <button
                 class="btn btn-primary"
                 style="background: var(--warning); color: #000; font-weight: 800;"
                 onclick="window.app.abrirModalListaSaida()"
               >
-                <i data-lucide="plus"></i> Nova Baixa em Lote
+                <i data-lucide="plus"></i> Registrar Saída
               </button>
             </div>
           </div>
 
-          <div class="card filter-strip-bar overflow-visible">
+          <div class="card filter-strip-bar overflow-visible" style="grid-template-columns: 220px 190px 160px 1fr;">
+            <div>
+              <select id="hist-tipo" class="input-modern" onchange="window.app.renderHistorico()">
+                <option value="Todos">Todos</option>
+                <option value="ENTRADA">📥 Apenas Entradas</option>
+                <option value="SAIDA">📤 Apenas Saídas</option>
+              </select>
+            </div>
             <div>
               <select id="hist-mes" class="input-modern" onchange="window.app.renderHistorico()"></select>
             </div>
@@ -664,7 +678,7 @@
                 type="text"
                 id="hist-busca"
                 class="input-modern"
-                placeholder="Filtrar por unidade (CRAS, CREAS, Conselho), material ou servidor..."
+                placeholder="Filtrar por unidade (CRAS, CREAS, Reposição), material ou servidor..."
                 oninput="window.app.renderHistorico()"
               />
             </div>
@@ -744,15 +758,16 @@
         <section id="view-relatorios" class="view">
           <div class="no-print overflow-visible" style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 14px;">
             <div>
-              <h2 class="page-title">Relatórios Oficiais A4 & Exportação Word</h2>
+              <h2 class="page-title">Relatórios & Exportação Word</h2>
               <p class="text-muted">Ao mudar o tipo de relatório abaixo, você pode tanto imprimir em A4 quanto gerar o arquivo Word da opção escolhida.</p>
             </div>
             <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
               <div style="width: 300px;">
                 <select id="rel-tipo" class="input-modern" onchange="window.app.renderRelatorioA4()">
                   <option value="HISTORICO_SAIDAS">Relatório Geral de Saídas por Unidade</option>
+                  <option value="HISTORICO_ENTRADAS">Relatório Geral de Entradas e Reposições</option>
                   <option value="ESTOQUE_GERAL">Posição Atual do Estoque Completo</option>
-                  <option value="ESTOQUE_CRITICO">Relatório de Materiais em Falta / Críticos</option>
+                  <option value="ESTOQUE_CRITICO">Relatório de Materiais em Falta</option>
                 </select>
               </div>
 
