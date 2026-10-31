@@ -64,7 +64,7 @@
       </form>
     </div>
 
-    <!-- Inicialização do Firebase e Lógica de Login Independente -->
+    <!-- Inicialização do Firebase e Lógica de Login com Foto da Conta na Nuvem -->
     <script type="module">
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
       import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
@@ -73,6 +73,7 @@
       const firebaseConfig = {
         apiKey: "AIzaSyDnwzbGPvJvZ4iHEptAXWSp2Dg4kn--UCk",
         authDomain: "banco01-1aa95.firebaseapp.com",
+        databaseURL: "https://banco01-1aa95-default-rtdb.firebaseio.com",
         projectId: "banco01-1aa95",
         storageBucket: "banco01-1aa95.firebasestorage.app",
         messagingSenderId: "52093411951",
@@ -82,6 +83,43 @@
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const dbNuvem = getDatabase(app);
+
+      // Função que desenha a foto de perfil/logo na caixa de login
+      function aplicarFotoLogin(urlBase64) {
+        const containerLogo = document.querySelector(".white-label-target");
+        if (!containerLogo) return;
+        if (urlBase64) {
+          containerLogo.innerHTML = `<img src="${urlBase64}" style="width:100%; height:100%; object-fit:contain; border-radius:20px;" />`;
+          containerLogo.style.background = "transparent";
+          containerLogo.style.boxShadow = "none";
+        } else {
+          containerLogo.innerHTML = `<i data-lucide="shield-check" style="width: 32px; height: 32px"></i>`;
+          containerLogo.style.background = "";
+          containerLogo.style.boxShadow = "";
+          lucide.createIcons();
+        }
+      }
+
+      // 1. Ao abrir a tela de login em qualquer aparelho, busca a foto salva no Firebase
+      async function carregarFotoInicialNuvem() {
+        try {
+          const snap = await get(ref(dbNuvem, "perfis_login/ultima_logo"));
+          if (snap.exists() && snap.val()) {
+            aplicarFotoLogin(snap.val());
+          }
+        } catch (e) {}
+      }
+      carregarFotoInicialNuvem();
+
+      // 2. Quando o usuário digita o e-mail da conta, busca a foto específica daquela conta
+      document.getElementById("login-email").addEventListener("change", async (e) => {
+        const email = e.target.value.trim().toLowerCase().replace(/[^a-z0-9]/g, "_");
+        if (!email) return;
+        try {
+          const snap = await get(ref(dbNuvem, `perfis_login/por_email/${email}`));
+          if (snap.exists()) aplicarFotoLogin(snap.val());
+        } catch (err) {}
+      });
 
       function mostrarAviso(msg, erro = false) {
         const toast = document.createElement("div");
@@ -102,23 +140,22 @@
           btn.disabled = true;
           btn.textContent = "Verificando...";
 
-          // Faz o login nativo do Firebase (ele gere a sessão sozinho)
-          const credencial = await signInWithEmailAndPassword(auth, email, senha);
-          
-          mostrarAviso("Acesso autorizado! Carregando dados da nuvem...");
+          await signInWithEmailAndPassword(auth, email, senha);
+          mostrarAviso("Acesso autorizado! Carregando sua conta na nuvem...");
 
           setTimeout(() => {
             window.location.href = "index.html";
-          }, 1000);
+          }, 800);
         } catch (error) {
-          mostrarAviso("E-mail ou palavra-passe incorretos!", true);
+          mostrarAviso("E-mail ou senha incorretos!", true);
           btn.disabled = false;
           btn.innerHTML = `<i data-lucide="log-in"></i> Entrar no Sistema`;
           lucide.createIcons();
         }
       });
 
-      window.mostrarSenha = () => {
+      // Botão de mostrar/esconder senha
+      document.getElementById("btn-mostrar-senha").addEventListener("click", () => {
         const inp = document.getElementById("login-senha");
         const icone = document.getElementById("eye-icon");
         if (inp.type === "password") {
@@ -129,7 +166,7 @@
           icone.setAttribute("data-lucide", "eye");
         }
         lucide.createIcons();
-      };
+      });
 
       lucide.createIcons();
     </script>
