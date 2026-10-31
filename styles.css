@@ -1072,9 +1072,25 @@ select.input-modern {
 .theme-btn.active { border-color: white; transform: scale(1.15); }
 
 /* =========================================================
-   8. IMPRESSÃO OFICIAL A4
+   8. PRÉVIA VISUAL DE FOLHA A4 NA TELA E IMPRESSÃO OFICIAL
    ========================================================= */
-   /* Estilos para a Tabela do Relatório na Tela (Prévia A4) */
+/* Estilo da folha A4 visível diretamente na tela */
+#area-relatorio-print {
+  background: white !important;
+  color: black !important;
+  width: 100%;
+  max-width: 210mm; /* Largura real de uma folha A4 */
+  min-height: 297mm; /* Altura real de uma folha A4 */
+  margin: 0 auto 30px auto; /* Centraliza a folha no ecrã */
+  padding: 15mm 20mm !important;
+  border-radius: 6px !important;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+}
+
+#area-relatorio-print * {
+  color: black !important;
+}
+
 #area-relatorio-print .print-table {
   width: 100%;
   border-collapse: collapse;
@@ -1084,22 +1100,24 @@ select.input-modern {
 
 #area-relatorio-print .print-table th,
 #area-relatorio-print .print-table td {
-  border: 1px solid #cbd5e1; /* Borda cinza clara para visibilidade na tela */
-  padding: 8px 12px;
-  font-size: 12px;
-  color: #1e293b; /* Texto escuro para melhor contraste no fundo branco */
+  border: 1px solid #94a3b8 !important;
+  padding: 8px 12px !important;
+  font-size: 12px !important;
+  color: #1e293b !important;
 }
 
 #area-relatorio-print .print-table th {
-  background-color: #f1f5f9;
-  font-weight: 700;
+  background-color: #e2e8f0 !important;
+  font-weight: 700 !important;
   text-transform: uppercase;
-  color: #334155;
+  color: #0f172a !important;
 }
 
 #area-relatorio-print .print-table tbody tr:nth-child(even) {
-  background-color: #f8fafc; /* Linhas zebradas suaves */
+  background-color: #f8fafc !important;
 }
+
+/* Regras exclusivas para quando enviar para a Impressora / PDF */
 @media print {
   @page { size: A4 portrait; margin: 10mm; }
   body, html { background: white !important; color: black !important; }
@@ -1108,39 +1126,22 @@ select.input-modern {
   .view { display: none !important; }
   #view-relatorios { display: block !important; }
   #area-relatorio-print {
-  background: white;
-  color: black;
-  width: 100%;
-  max-width: 210mm; /* Largura exata de uma folha A4 */
-  min-height: 297mm; /* Altura de uma folha A4 */
-  margin: 0 auto; /* Centraliza a folha na tela */
-  padding: 15mm 20mm;
-  border-radius: 4px;
-  box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8);
-}
-  .print-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-  .print-table th, .print-table td { border: 1px solid #000 !important; padding: 7px 9px !important; font-size: 11px !important; color: black !important; }
-  .print-table th { background: #f1f5f9 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-}
-
-@media (max-width: 980px) {
-  .charts-row, .form-grid-3, .util-grid, .filter-strip-bar { grid-template-columns: 1fr; }
-}
-/* Estilo dos campos de E-mail e Senha na Tela de Login */
-.login-input {
-  width: 100%;
-  background: var(--bg-input);
-  border: 1px solid var(--border-glass);
-  border-radius: 12px;
-  padding: 13px 16px;
-  color: white;
-  font-size: 14px;
-  font-family: var(--font-body);
-  margin-bottom: 12px;
-  transition: 0.25s;
-}
-
-.login-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-glow);
+    max-width: 100% !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .print-table th, .print-table td {
+    border: 1px solid #000 !important;
+    padding: 7px 9px !important;
+    font-size: 11px !important;
+    color: black !important;
+  }
+  .print-table th {
+    background: #f1f5f9 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
 }
