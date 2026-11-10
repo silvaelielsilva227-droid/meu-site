@@ -1876,7 +1876,7 @@ const App = (() => {
             <thead>
               <tr>
                 <th style="width: 12%;">Data</th>
-                <th style="width: 22%;">${isEntrada ? "Origem / Operação" : "Unidade / Setor"}</th>
+                <th style="width: 22%;">${isEntrada ? "Origem" : "Setor Destino"}</th>
                 <th style="width: 18%;">${isEntrada ? "Referência" : "Solicitante"}</th>
                 <th style="width: 8%;">Nº Item</th>
                 <th style="width: 28%;">${isEntrada ? "Material Recebido" : "Material Entregue"}</th>
