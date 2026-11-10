@@ -255,13 +255,13 @@
               <div class="input-group">
                 <label>Unidade de Medida Padrão</label>
                 <select id="mat-unidade" class="input-modern" required>
-                  <option value="Unid.">Unidade (Unid.)</option>
-                  <option value="Cx.">Caixa (Cx.)</option>
-                  <option value="Pct.">Pacote (Pct.)</option>
+                  <option value="Unid.">Unidade</option>
+                  <option value="Cx.">Caixa</option>
+                  <option value="Pct.">Pacote</option>
                   <option value="Resma">Resma</option>
                   <option value="Fardo">Fardo</option>
-                  <option value="L">Litros (L)</option>
-                  <option value="Kg">Quilos (Kg)</option>
+                  <option value="L">Litros</option>
+                  <option value="Kg">Quilos</option>
                   <option value="Rolo">Rolo</option>
                 </select>
               </div>
@@ -289,7 +289,7 @@
               </div>
 
               <div class="input-group">
-                <label>Localização / Estante (Opcional)</label>
+                <label>Localização do Material</label>
                 <input type="text" id="mat-local" class="input-modern" placeholder="Ex: Armário 01 - Prateleira B" />
               </div>
             </div>
@@ -346,8 +346,8 @@
               <div class="input-group" id="ind-wrap-modo-retirada" style="margin-bottom: 14px; display: none;">
                 <label style="color: var(--info); font-weight: 700;">Como deseja retirar este material?</label>
                 <select id="ind-modo-retirada" class="input-modern" onchange="if(window.app) window.app.alternarModoRetiradaIndividual()">
-                  <option value="VOLUME_INTEIRO">📦 Retirar Volume(s) Inteiro(s) (Caixa / Fardo / Pacote completo)</option>
-                  <option value="UNIDADES_SOLTAS">🔢 Retirar apenas Unidade(s) Solta(s) de dentro do volume</option>
+                  <option value="VOLUME_INTEIRO">📦 Retirar Volumes Inteiros</option>
+                  <option value="UNIDADES_SOLTAS">🔢 Retirar apenas Unidades Soltas de dentro do volume</option>
                 </select>
               </div>
             </div>
