@@ -1168,3 +1168,29 @@ select.input-modern {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-glow);
 }
+/* Grade de Inspeção de Volumes Individuais (Aba de 2 Cliques) */
+.volumes-individual-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+  margin-bottom: 30px;
+}
+
+.volume-unit-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass-strong);
+  border-top: 3px solid var(--success);
+  border-radius: 16px;
+  padding: 16px;
+  transition: all 0.2s ease;
+}
+
+.volume-unit-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+}
+
+.volume-unit-card.volume-aberto {
+  border-top-color: var(--warning);
+  background: rgba(245, 158, 11, 0.05);
+}
