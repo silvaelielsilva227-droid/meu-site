@@ -552,11 +552,27 @@ const App = (() => {
   };
   
 
-  /* =========================================================
-     8. PRATELEIRA DE ESTOQUE, BLOQUEIO DE Nº REPETIDO E REPOSIÇÃO COM UNIDADE
-     ========================================================= */
   const Estoque = {
-    // Normaliza código para evitar que "01" e "1" se repitam
+    materialInspecionadoId: null,
+
+    // Garante que todo material tenha a lista individual de cada Fardo/Caixa e suas unidades internas
+    sincronizarVolumes: (m) => {
+      const unidPorVol = Math.max(1, parseInt(m.unidadesPorVolume, 10) || 1);
+      m.unidadesPorVolume = unidPorVol;
+      const qtdVol = Math.max(0, Math.ceil(parseFloat(m.qtd) || 0));
+
+      if (!Array.isArray(m.volumes)) {
+        m.volumes = Array.from({ length: qtdVol }, () => unidPorVol);
+      } else {
+        // Remove fardos/caixas que já zeraram (0 unidades)
+        m.volumes = m.volumes.map((u) => Number(parseFloat(u) || 0)).filter((u) => u > 0);
+      }
+
+      m.qtd = m.volumes.length;
+      m.totalUnidades = m.volumes.reduce((acc, u) => acc + u, 0);
+      return m;
+    },
+
     normalizarCodigo: (cod) => {
       const s = String(cod || "").trim().toLowerCase();
       return /^\d+$/.test(s) ? String(parseInt(s, 10)) : s;
@@ -598,17 +614,24 @@ const App = (() => {
       document.getElementById("form-material").reset();
       document.getElementById("mat-id").value = "";
       document.getElementById("aviso-codigo-duplicado").style.display = "none";
+      if (document.getElementById("mat-unid-por-volume")) {
+        document.getElementById("mat-unid-por-volume").value = "1";
+      }
       Categorias.renderPillsESelects();
 
       if (id) {
         const m = state.materiais.find((x) => x.id === id);
         if (!m) return;
+        Estoque.sincronizarVolumes(m);
         document.getElementById("mat-id").value = m.id;
         document.getElementById("mat-codigo").value = m.codigo || "";
         document.getElementById("mat-nome").value = m.nome;
         document.getElementById("mat-categoria").value = m.categoria;
         document.getElementById("mat-qtd").value = m.qtd;
         document.getElementById("mat-unidade").value = m.unidade;
+        if (document.getElementById("mat-unid-por-volume")) {
+          document.getElementById("mat-unid-por-volume").value = m.unidadesPorVolume || 1;
+        }
         document.getElementById("mat-minimo").value = m.minimo;
         document.getElementById("mat-local").value = m.local || "";
         document.getElementById("modal-material-titulo").innerHTML = `<i data-lucide="pencil" style="color:var(--accent)"></i> Editar Material`;
@@ -624,29 +647,47 @@ const App = (() => {
     },
 
     salvarMaterial: () => {
-      // Impede salvar se o número do item já existir
       const itemDuplicado = Estoque.verificarCodigoDuplicado();
       if (itemDuplicado) {
         return Utils.toast(`Não permitido: O Nº de item informado já pertence a "${itemDuplicado.nome}"!`, "error");
       }
 
       const id = document.getElementById("mat-id").value;
-      const qtdInicial = parseFloat(document.getElementById("mat-qtd").value) || 0;
+      const qtdVolumes = Math.max(0, Math.floor(parseFloat(document.getElementById("mat-qtd").value) || 0));
+      const unidPorVolume = Math.max(1, parseInt(document.getElementById("mat-unid-por-volume")?.value, 10) || 1);
+
+      let volumesArray = [];
+      if (id) {
+        const antigo = state.materiais.find((x) => x.id === id);
+        if (antigo && Array.isArray(antigo.volumes)) {
+          volumesArray = [...antigo.volumes];
+        }
+      }
+      // Ajusta a lista individual de fardos/caixas para refletir a quantidade cadastrada
+      while (volumesArray.length < qtdVolumes) {
+        volumesArray.push(unidPorVolume);
+      }
+      if (volumesArray.length > qtdVolumes) {
+        volumesArray = volumesArray.slice(0, qtdVolumes);
+      }
+
       const obj = {
         id: id || "MAT_" + Date.now(),
         codigo: document.getElementById("mat-codigo").value.trim(),
         nome: document.getElementById("mat-nome").value.trim(),
         categoria: document.getElementById("mat-categoria").value,
-        qtd: qtdInicial,
+        qtd: volumesArray.length,
         unidade: document.getElementById("mat-unidade").value,
+        unidadesPorVolume: unidPorVolume,
+        volumes: volumesArray,
+        totalUnidades: volumesArray.reduce((a, b) => a + b, 0),
         minimo: parseFloat(document.getElementById("mat-minimo").value) || 0,
         local: document.getElementById("mat-local").value.trim(),
         deleted: false
       };
 
       DB.save("materiais", obj, () => {
-        // Se for um cadastro novo com quantidade maior que zero, regista no Histórico de Entradas
-        if (!id && qtdInicial > 0) {
+        if (!id && qtdVolumes > 0) {
           const registoEntradaInicial = {
             id: "ENT_" + Date.now(),
             data: Utils.hojeISO(),
@@ -659,8 +700,9 @@ const App = (() => {
               codigo: obj.codigo,
               nome: obj.nome,
               categoria: obj.categoria,
-              unidade: obj.unidade,
-              qtd: qtdInicial
+              unidade: obj.unidadesPorVolume > 1 ? `${obj.unidade} (${obj.unidadesPorVolume} un./vol)` : obj.unidade,
+              qtd: qtdVolumes,
+              modoRetirada: "VOLUME_INTEIRO"
             }]
           };
           DB.save("historico", registoEntradaInicial, () => {
@@ -668,7 +710,7 @@ const App = (() => {
           });
         }
         document.getElementById("modalMaterial").classList.remove("active");
-        Utils.toast(id ? "Material atualizado!" : "Material adicionado à prateleira e registado nas Entradas!");
+        Utils.toast(id ? "Material atualizado!" : "Material cadastrado com seus volumes individuais!");
         Estoque.render();
       });
     },
@@ -683,9 +725,110 @@ const App = (() => {
       });
     },
 
+    // NOVA FUNÇÃO: Abre a aba exclusiva ao dar 2 cliques no material mostrando cada Fardo/Caixa individualmente
+    abrirInspecaoVolumes: (id) => {
+      const m = state.materiais.find((x) => x.id === id);
+      if (!m) return;
+      Estoque.materialInspecionadoId = m.id;
+      Estoque.sincronizarVolumes(m);
+
+      document.getElementById("det-vol-codigo").textContent = `Nº ${m.codigo || "--"}`;
+      document.getElementById("det-vol-categoria").textContent = m.categoria;
+      document.getElementById("det-vol-titulo").textContent = m.nome;
+      document.getElementById("det-vol-subtitulo").innerHTML = `
+        Total na Prateleira: <strong style="color:var(--success)">${m.qtd} ${m.unidade}</strong> 
+        (${m.unidadesPorVolume} unid. por ${m.unidade}) • 
+        Saldo Total de Unidades Soltas: <strong style="color:var(--info)">${m.totalUnidades} Unid.</strong>
+      `;
+
+      document.getElementById("btn-det-repor").onclick = () => Estoque.abrirMovIndividual(m.id, "ENTRADA");
+      document.getElementById("btn-det-baixa").onclick = () => Estoque.abrirMovIndividual(m.id, "SAIDA");
+
+      const grid = document.getElementById("volumes-grid-container");
+      grid.innerHTML = "";
+
+      if (m.volumes.length === 0) {
+        grid.innerHTML = `
+          <div class="card" style="grid-column: 1 / -1; text-align: center; padding: 45px;">
+            <p class="text-muted">Este material está com estoque zerado (0 volumes disponíveis).</p>
+          </div>
+        `;
+      } else {
+        m.volumes.forEach((unidRestantes, index) => {
+          const capMax = m.unidadesPorVolume || 1;
+          const pct = Math.min(100, Math.round((unidRestantes / capMax) * 100));
+          const isAberto = unidRestantes < capMax;
+          const cor = isAberto ? "var(--warning)" : "var(--success)";
+
+          const box = document.createElement("div");
+          box.className = `volume-unit-card ${isAberto ? "volume-aberto" : ""}`;
+          box.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span class="sku-badge">${m.unidade} #${String(index + 1).padStart(3, "0")}</span>
+              <span style="font-size:11px; font-weight:800; color:${cor};">
+                ${isAberto ? "🔓 ABERTO / PARCIAL" : "📦 FECHADO (100%)"}
+              </span>
+            </div>
+            <div style="font-size:14px; font-weight:700; color:white; margin-bottom:6px;">
+              ${m.nome}
+            </div>
+            <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted); margin-bottom:6px;">
+              <span>Unidades neste volume:</span>
+              <strong style="color:${cor}; font-size:14px;">${unidRestantes} / ${capMax} unid.</strong>
+            </div>
+            <div class="gauge-bar-bg" style="margin-bottom:12px;">
+              <div class="gauge-bar-fill" style="width:${pct}%; background:${cor};"></div>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button
+                class="btn-step saida"
+                style="flex:1; justify-content:center;"
+                onclick="window.app.retirarUnidadesDeVolumeEspecifico('${m.id}', ${index})"
+                title="Retirar unidades ou este volume inteiro"
+              >
+                <i data-lucide="minus-circle" style="width:13px;"></i> Retirar Deste
+              </button>
+            </div>
+          `;
+          grid.appendChild(box);
+        });
+      }
+
+      document.querySelectorAll(".view").forEach((v) => v.classList.remove("active"));
+      document.getElementById("view-detalhe-volumes")?.classList.add("active");
+      renderIcons();
+    },
+
+    // Permite clicar diretamente em um dos 100 fardos/caixas na aba de detalhes para tirar unidades dele
+    retirarUnidadesDeVolumeEspecifico: (id, indiceVolume) => {
+      Estoque.indiceVolumePreferencial = indiceVolume;
+      Estoque.abrirMovIndividual(id, "SAIDA");
+    },
+
+    alternarModoRetiradaIndividual: () => {
+      const id = document.getElementById("ind-mat-id").value;
+      const m = state.materiais.find((x) => x.id === id);
+      if (!m) return;
+      const modo = document.getElementById("ind-modo-retirada")?.value || "VOLUME_INTEIRO";
+      const labelQtd = document.getElementById("ind-label-qtd");
+      const inpQtd = document.getElementById("ind-qtd");
+
+      if (modo === "UNIDADES_SOLTAS") {
+        labelQtd.textContent = `Qtd. de Unidades Soltas a Retirar (Disponível: ${m.totalUnidades} unid.)`;
+        inpQtd.max = m.totalUnidades;
+        inpQtd.step = "1";
+      } else {
+        labelQtd.textContent = `Qtd. de ${m.unidade} Inteiro(s) a Retirar (Disponível: ${m.qtd} ${m.unidade})`;
+        inpQtd.max = m.qtd;
+        inpQtd.step = "1";
+      }
+    },
+
     abrirMovIndividual: (id, tipo = "SAIDA") => {
       const m = state.materiais.find((x) => x.id === id);
       if (!m) return;
+      Estoque.sincronizarVolumes(m);
+
       document.getElementById("form-mov-individual").reset();
       document.getElementById("ind-mat-id").value = m.id;
       document.getElementById("ind-tipo").value = tipo;
@@ -697,6 +840,7 @@ const App = (() => {
       const selUnidade = document.getElementById("ind-unidade");
       const grupoUnidade = document.getElementById("ind-grupo-unidade");
       const boxConversao = document.getElementById("ind-box-conversao");
+      const wrapModoRetirada = document.getElementById("ind-wrap-modo-retirada");
       const btn = document.getElementById("ind-btn-submit");
 
       selUnidade.value = m.unidade;
@@ -704,31 +848,40 @@ const App = (() => {
       CustomSelect.init("ind-modo-unidade");
       boxConversao.style.display = "none";
 
+      const temMultiplasUnidades = (m.unidadesPorVolume || 1) > 1 || ["Cx.", "Fardo", "Pct.", "Resma"].includes(m.unidade);
+
       document.getElementById("ind-resumo-box").innerHTML = `
         <span class="sku-badge">Nº ${m.codigo}</span> <strong style="color:white; font-size:15px; margin-left:6px;">${m.nome}</strong><br/>
-        <span class="text-muted">Saldo atual na prateleira:</span> <strong style="color:var(--success)">${m.qtd} ${m.unidade}</strong>
+        <span class="text-muted">Volumes na prateleira:</span> <strong style="color:var(--success)">${m.qtd} ${m.unidade}</strong>
+        ${m.unidadesPorVolume > 1 ? ` • <span class="text-muted">Total em Unidades:</span> <strong style="color:var(--info)">${m.totalUnidades} Unid.</strong> (${m.unidadesPorVolume} un./${m.unidade})` : ""}
       `;
 
       if (tipo === "SAIDA") {
-        // Na baixa: Mostra Setor e Responsável, trava a unidade atual e só dá baixa (não baixa arquivo direto)
         document.getElementById("modal-mov-ind-titulo").innerHTML = `<i data-lucide="arrow-down-circle" style="color:var(--warning)"></i> Dar Baixa no Material`;
         blocoSaida.style.display = "block";
         inputSetor.setAttribute("required", "true");
         inputResp.setAttribute("required", "true");
         grupoUnidade.style.display = "none";
-        labelQtd.textContent = `Quantidade de Saída (${m.unidade})`;
+
+        if (wrapModoRetirada) {
+          wrapModoRetirada.style.display = temMultiplasUnidades ? "block" : "none";
+          document.getElementById("ind-modo-retirada").value = "VOLUME_INTEIRO";
+          CustomSelect.init("ind-modo-retirada");
+        }
+
+        Estoque.alternarModoRetiradaIndividual();
         labelQtd.style.color = "var(--warning)";
         btn.style.background = "var(--warning)";
         btn.style.color = "#000";
         btn.textContent = "Confirmar Baixa no Estoque";
       } else {
-        // Na reposição: Tira a opção de responsável e pergunta a Unidade de Medida
         document.getElementById("modal-mov-ind-titulo").innerHTML = `<i data-lucide="plus-circle" style="color:var(--success)"></i> Repor Material no Estoque`;
         blocoSaida.style.display = "none";
         inputSetor.removeAttribute("required");
         inputResp.removeAttribute("required");
+        if (wrapModoRetirada) wrapModoRetirada.style.display = "none";
         grupoUnidade.style.display = "block";
-        labelQtd.textContent = "Quantidade a Repor";
+        labelQtd.textContent = `Quantidade de ${m.unidade} a Repor`;
         labelQtd.style.color = "var(--success)";
         btn.style.background = "var(--success)";
         btn.style.color = "#000";
@@ -740,28 +893,6 @@ const App = (() => {
       setTimeout(() => document.getElementById("ind-qtd").focus(), 100);
     },
 
-    verificarMudancaUnidadeReposicao: () => {
-      const id = document.getElementById("ind-mat-id").value;
-      const tipo = document.getElementById("ind-tipo").value;
-      const m = state.materiais.find((x) => x.id === id);
-      if (!m || tipo !== "ENTRADA") return;
-
-      const novaUnid = document.getElementById("ind-unidade").value;
-      const box = document.getElementById("ind-box-conversao");
-      if (novaUnid !== m.unidade) {
-        box.style.display = "block";
-        Estoque.alternarModoConversao();
-      } else {
-        box.style.display = "none";
-      }
-    },
-
-    alternarModoConversao: () => {
-      const modo = document.getElementById("ind-modo-unidade").value;
-      const wrap = document.getElementById("ind-wrap-fator");
-      wrap.style.display = modo === "CONVERTER_QTD" ? "block" : "none";
-    },
-
     confirmarMovIndividual: () => {
       const id = document.getElementById("ind-mat-id").value;
       const tipo = document.getElementById("ind-tipo").value;
@@ -770,16 +901,53 @@ const App = (() => {
 
       const m = state.materiais.find((x) => x.id === id);
       if (!m || qtdInformada <= 0) return;
+      Estoque.sincronizarVolumes(m);
 
       if (tipo === "SAIDA") {
         const setor = document.getElementById("ind-setor").value.trim();
         const resp = document.getElementById("ind-responsavel").value.trim();
+        const modoRetirada = document.getElementById("ind-modo-retirada")?.value || "VOLUME_INTEIRO";
 
-        if (qtdInformada > m.qtd) {
-          return Utils.toast(`Saldo insuficiente! Disponível: ${m.qtd} ${m.unidade}`, "error");
+        let unidParaDescontar = 0;
+        let descricaoUnidadeHistorico = m.unidade;
+
+        if (modoRetirada === "UNIDADES_SOLTAS" && m.unidadesPorVolume > 1) {
+          unidParaDescontar = Math.round(qtdInformada);
+          if (unidParaDescontar > m.totalUnidades) {
+            return Utils.toast(`Saldo insuficiente! Disponível: ${m.totalUnidades} unidades soltas.`, "error");
+          }
+          descricaoUnidadeHistorico = `Unid. (de ${m.unidade})`;
+
+          // Desconta as unidades soltas começando pelo volume preferencial ou pelos fardos já abertos
+          let restanteDescontar = unidParaDescontar;
+          if (typeof Estoque.indiceVolumePreferencial === "number" && m.volumes[Estoque.indiceVolumePreferencial] !== undefined) {
+            const disp = m.volumes[Estoque.indiceVolumePreferencial];
+            const tirar = Math.min(disp, restanteDescontar);
+            m.volumes[Estoque.indiceVolumePreferencial] -= tirar;
+            restanteDescontar -= tirar;
+          }
+          Estoque.indiceVolumePreferencial = null;
+
+          // Ordena para consumir primeiro os fardos que já estão abertos (parciais)
+          m.volumes.sort((a, b) => a - b);
+          for (let i = 0; i < m.volumes.length && restanteDescontar > 0; i++) {
+            const tirar = Math.min(m.volumes[i], restanteDescontar);
+            m.volumes[i] -= tirar;
+            restanteDescontar -= tirar;
+          }
+        } else {
+          // Retirada de Caixas / Fardos inteiros
+          const volsInteiros = Math.round(qtdInformada);
+          if (volsInteiros > m.qtd) {
+            return Utils.toast(`Saldo insuficiente! Disponível: ${m.qtd} ${m.unidade}`, "error");
+          }
+          unidParaDescontar = volsInteiros * (m.unidadesPorVolume || 1);
+          // Remove fardos fechados primeiro
+          m.volumes.sort((a, b) => b - a);
+          m.volumes.splice(0, volsInteiros);
         }
 
-        m.qtd = Number((m.qtd - qtdInformada).toFixed(2));
+        Estoque.sincronizarVolumes(m);
 
         const registroSaida = {
           id: "LOTE_" + Date.now(),
@@ -787,35 +955,37 @@ const App = (() => {
           tipo: "SAIDA",
           setor,
           responsavel: resp,
-          documento: "Baixa Individual",
-          itens: [{ id: m.id, codigo: m.codigo, nome: m.nome, categoria: m.categoria, unidade: m.unidade, qtd: qtdInformada }]
+          documento: modoRetirada === "UNIDADES_SOLTAS" ? "Retirada de Unidades Avulsas" : "Baixa de Volume Completo",
+          itens: [{
+            id: m.id,
+            codigo: m.codigo,
+            nome: m.nome,
+            categoria: m.categoria,
+            unidade: descricaoUnidadeHistorico,
+            qtd: qtdInformada,
+            modoRetirada,
+            unidadesEquivalentes: unidParaDescontar
+          }]
         };
 
         DB.save("materiais", m, () => {
           DB.save("historico", registroSaida, () => {
             document.getElementById("modalMovIndividual").classList.remove("active");
-            Utils.toast(`Baixa de ${qtdInformada} ${m.unidade} realizada! (Disponível no Histórico para gerar Word)`);
+            Utils.toast(`Saída de ${qtdInformada} ${descricaoUnidadeHistorico} registrada!`);
             Estoque.render();
             Historico.render();
+            if (document.getElementById("view-detalhe-volumes")?.classList.contains("active")) {
+              Estoque.abrirInspecaoVolumes(m.id);
+            }
           });
         });
       } else {
-        // REPOSIÇÃO DE ESTOQUE (Sem responsável e tratando a unidade de medida)
-        let qtdSomar = qtdInformada;
-        let descricaoUnid = unidEscolhida;
-
-        if (unidEscolhida !== m.unidade) {
-          const modo = document.getElementById("ind-modo-unidade").value;
-          if (modo === "ATUALIZAR_UNIDADE") {
-            m.unidade = unidEscolhida;
-          } else {
-            const fator = parseFloat(document.getElementById("ind-fator-conversao").value) || 1;
-            qtdSomar = Number((qtdInformada * fator).toFixed(2));
-            descricaoUnid = `${m.unidade} (${qtdInformada} ${unidEscolhida} x ${fator})`;
-          }
+        // REPOSIÇÃO DE ESTOQUE (Adiciona novos Fardos/Caixas cheios)
+        const volsAdicionar = Math.max(1, Math.round(qtdInformada));
+        for (let i = 0; i < volsAdicionar; i++) {
+          m.volumes.push(m.unidadesPorVolume || 1);
         }
-
-        m.qtd = Number((m.qtd + qtdSomar).toFixed(2));
+        Estoque.sincronizarVolumes(m);
 
         const registroEntrada = {
           id: "LOTE_" + Date.now(),
@@ -824,15 +994,26 @@ const App = (() => {
           setor: "Reposição de Almoxarifado",
           responsavel: "--",
           documento: `Entrada em ${unidEscolhida}`,
-          itens: [{ id: m.id, codigo: m.codigo, nome: m.nome, categoria: m.categoria, unidade: descricaoUnid, qtd: qtdSomar }]
+          itens: [{
+            id: m.id,
+            codigo: m.codigo,
+            nome: m.nome,
+            categoria: m.categoria,
+            unidade: m.unidade,
+            qtd: volsAdicionar,
+            modoRetirada: "VOLUME_INTEIRO"
+          }]
         };
 
         DB.save("materiais", m, () => {
           DB.save("historico", registroEntrada, () => {
             document.getElementById("modalMovIndividual").classList.remove("active");
-            Utils.toast(`Estoque abastecido: +${qtdSomar} ${m.unidade}!`);
+            Utils.toast(`Estoque abastecido: +${volsAdicionar} ${m.unidade}!`);
             Estoque.render();
             Historico.render();
+            if (document.getElementById("view-detalhe-volumes")?.classList.contains("active")) {
+              Estoque.abrirInspecaoVolumes(m.id);
+            }
           });
         });
       }
@@ -919,13 +1100,19 @@ const App = (() => {
       }
 
       filtrados.forEach((m) => {
+        Estoque.sincronizarVolumes(m);
         const isCrit = m.qtd <= m.minimo;
         const refMax = Math.max(m.qtd, m.minimo * 3, 1);
         const pct = Math.min(100, Math.round((m.qtd / refMax) * 100));
         const cor = isCrit ? "var(--danger)" : m.qtd <= m.minimo * 1.5 ? "var(--warning)" : "var(--success)";
+        const abertos = m.volumes.filter((u) => u < (m.unidadesPorVolume || 1)).length;
 
         const card = document.createElement("div");
         card.className = `shelf-card ${isCrit ? "card-critico" : ""}`;
+        card.style.cursor = "pointer";
+        card.title = "💡 Dê 2 cliques neste material para abrir todos os Fardos/Caixas cadastrados!";
+        card.ondblclick = () => window.app.abrirInspecaoVolumes(m.id);
+
         card.innerHTML = `
           <div>
             <div class="shelf-top">
@@ -935,6 +1122,7 @@ const App = (() => {
             <h3 class="shelf-title">${m.nome}</h3>
             <p class="text-muted" style="font-size: 11.5px; margin-top: 4px;">
               <i data-lucide="map-pin" style="width: 12px; vertical-align: middle;"></i> ${m.local || "Almoxarifado Geral"}
+              <span style="float:right; color:var(--info); font-size:10.5px;">🖱️ 2 cliques p/ ver volumes</span>
             </p>
 
             <div class="shelf-gauge-box" style="margin-top: 12px;">
@@ -944,7 +1132,15 @@ const App = (() => {
                   ${m.qtd} <small style="font-size: 13px; color: var(--text-muted); font-weight: 600;">${m.unidade}</small>
                 </span>
               </div>
-              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 2px;">
+              ${
+                m.unidadesPorVolume > 1
+                  ? `<div style="font-size: 11.5px; color: var(--info); margin-top: 3px; font-weight: 600;">
+                       📦 ${m.unidadesPorVolume} un./${m.unidade} • Total: <strong>${m.totalUnidades} unid.</strong>
+                       ${abertos > 0 ? `<span style="color:var(--warning);">(${abertos} aberto)</span>` : ""}
+                     </div>`
+                  : ""
+              }
+              <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 4px;">
                 <span>Mínimo: ${m.minimo} ${m.unidade}</span>
                 <span style="color: ${cor}; font-weight: 700;">${isCrit ? "⚠️ Repor" : "● OK"}</span>
               </div>
@@ -956,18 +1152,21 @@ const App = (() => {
 
           <div class="shelf-actions">
             <div class="quick-step-group">
-              <button class="btn-step saida" onclick="window.app.abrirMovIndividual('${m.id}', 'SAIDA')" title="Dar baixa neste material">
+              <button class="btn-step saida" onclick="event.stopPropagation(); window.app.abrirMovIndividual('${m.id}', 'SAIDA')" title="Dar baixa neste material">
                 <i data-lucide="arrow-down-right" style="width: 14px;"></i> Dar Baixa
               </button>
-              <button class="btn-step entrada" onclick="window.app.abrirMovIndividual('${m.id}', 'ENTRADA')" title="Repor material escolhendo a unidade">
+              <button class="btn-step entrada" onclick="event.stopPropagation(); window.app.abrirMovIndividual('${m.id}', 'ENTRADA')" title="Repor material">
                 <i data-lucide="plus" style="width: 14px;"></i> Repor
               </button>
             </div>
             <div style="display: flex; gap: 6px;">
-              <button class="btn-mini-icon" onclick="window.app.abrirModalMaterial('${m.id}')" title="Editar Material">
+              <button class="btn-mini-icon" onclick="event.stopPropagation(); window.app.abrirInspecaoVolumes('${m.id}')" title="Ver todos os Fardos/Caixas individuais">
+                <i data-lucide="boxes" style="width: 14px;"></i>
+              </button>
+              <button class="btn-mini-icon" onclick="event.stopPropagation(); window.app.abrirModalMaterial('${m.id}')" title="Editar Material">
                 <i data-lucide="pencil" style="width: 14px;"></i>
               </button>
-              <button class="btn-mini-icon del" onclick="window.app.enviarParaLixeira('${m.id}')" title="Enviar para Lixeira">
+              <button class="btn-mini-icon del" onclick="event.stopPropagation(); window.app.enviarParaLixeira('${m.id}')" title="Enviar para Lixeira">
                 <i data-lucide="trash-2" style="width: 14px;"></i>
               </button>
             </div>
@@ -1174,7 +1373,7 @@ const App = (() => {
 
       document.getElementById("pedido-setor").value = "";
       document.getElementById("pedido-responsavel").value = "";
-      document.getElementById("pedido-documento").value = ` `;
+      document.getElementById("pedido-documento").value = "";
       document.getElementById("pedido-filtro-item").value = "";
 
       const chipsBox = document.getElementById("chips-unidades-destino");
@@ -1197,28 +1396,40 @@ const App = (() => {
       ativos
         .sort((a, b) => (a.codigo || "").localeCompare(b.codigo || "", undefined, { numeric: true }))
         .forEach((m) => {
+          Estoque.sincronizarVolumes(m);
+          const temUnidadesInternas = (m.unidadesPorVolume || 1) > 1;
           const row = document.createElement("div");
           row.className = "pedido-item-row";
           row.dataset.busca = `${m.codigo} ${m.nome} ${m.categoria}`.toLowerCase();
           row.innerHTML = `
             <div class="font-mono" style="font-weight: 700; color: var(--accent);">Nº ${m.codigo || "-"}</div>
-            <div style="font-weight: 600; color: white;">${m.nome}</div>
+            <div style="font-weight: 600; color: white;">
+              ${m.nome}
+              ${temUnidadesInternas ? `<small style="display:block; color:var(--info); font-size:11px;">📦 ${m.unidadesPorVolume} un./${m.unidade} (Total: ${m.totalUnidades} un.)</small>` : ""}
+            </div>
             <div><span class="cat-tag">${m.categoria}</span></div>
             <div style="text-align: center; color: ${m.qtd <= m.minimo ? "var(--danger)" : "var(--text-muted)"}; font-weight: 600;">
               ${m.qtd} ${m.unidade}
             </div>
-            <div>
+            <div style="display: flex; flex-direction: column; gap: 4px;">
               <input
                 type="number"
-                step="0.01"
+                step="1"
                 min="0"
-                max="${m.qtd}"
                 class="input-modern qtd-saida-lote"
                 style="padding: 6px 10px !important; text-align: center; border-color: var(--warning);"
                 data-id="${m.id}"
                 placeholder="0"
                 oninput="window.app.calcularResumoModalSaida()"
               />
+              ${
+                temUnidadesInternas
+                  ? `<select class="modo-saida-lote" data-id="${m.id}" style="background:#06080e; color:#a5f3fc; border:1px solid var(--border-glass); border-radius:6px; padding:3px 6px; font-size:11px;">
+                       <option value="VOLUME_INTEIRO">Em ${m.unidade} (Inteiro)</option>
+                       <option value="UNIDADES_SOLTAS">Em Unid. Soltas</option>
+                     </select>`
+                  : `<input type="hidden" class="modo-saida-lote" data-id="${m.id}" value="VOLUME_INTEIRO" />`
+              }
             </div>
           `;
           lista.appendChild(row);
@@ -1249,7 +1460,6 @@ const App = (() => {
       document.getElementById("pedido-total-unidades").textContent = `${somaUnidades} Volume(s)`;
     },
 
-    // Apenas dá a baixa no estoque e salva no Histórico (sem baixar arquivo direto)
     processarSaidaLote: () => {
       const setor = document.getElementById("pedido-setor").value.trim();
       const responsavel = document.getElementById("pedido-responsavel").value.trim() || "Servidor Designado";
@@ -1263,21 +1473,43 @@ const App = (() => {
       let erroSaldo = null;
 
       document.querySelectorAll(".qtd-saida-lote").forEach((inp) => {
-        const qtd = parseFloat(inp.value) || 0;
+        const qtd = Math.round(parseFloat(inp.value) || 0);
         if (qtd > 0) {
           const mat = state.materiais.find((m) => m.id === inp.dataset.id);
+          const selModo = document.querySelector(`.modo-saida-lote[data-id="${inp.dataset.id}"]`);
+          const modoRetirada = selModo ? selModo.value : "VOLUME_INTEIRO";
+
           if (mat) {
-            if (qtd > mat.qtd) {
-              erroSaldo = `O item "${mat.nome}" possui apenas ${mat.qtd} ${mat.unidade} disponível!`;
+            Estoque.sincronizarVolumes(mat);
+            if (modoRetirada === "UNIDADES_SOLTAS" && mat.unidadesPorVolume > 1) {
+              if (qtd > mat.totalUnidades) {
+                erroSaldo = `O item "${mat.nome}" possui apenas ${mat.totalUnidades} unidades soltas disponíveis!`;
+              }
+              itensEscolhidos.push({
+                id: mat.id,
+                codigo: mat.codigo,
+                nome: mat.nome,
+                categoria: mat.categoria,
+                unidade: `Unid. (de ${mat.unidade})`,
+                qtd,
+                modoRetirada,
+                unidadesEquivalentes: qtd
+              });
+            } else {
+              if (qtd > mat.qtd) {
+                erroSaldo = `O item "${mat.nome}" possui apenas ${mat.qtd} ${mat.unidade} disponível!`;
+              }
+              itensEscolhidos.push({
+                id: mat.id,
+                codigo: mat.codigo,
+                nome: mat.nome,
+                categoria: mat.categoria,
+                unidade: mat.unidade,
+                qtd,
+                modoRetirada: "VOLUME_INTEIRO",
+                unidadesEquivalentes: qtd * (mat.unidadesPorVolume || 1)
+              });
             }
-            itensEscolhidos.push({
-              id: mat.id,
-              codigo: mat.codigo,
-              nome: mat.nome,
-              categoria: mat.categoria,
-              unidade: mat.unidade,
-              qtd
-            });
           }
         }
       });
@@ -1297,17 +1529,31 @@ const App = (() => {
         itens: itensEscolhidos
       };
 
+      // Desconta de cada fardo/caixa na lista volumes
       itensEscolhidos.forEach((item) => {
         const mat = state.materiais.find((m) => m.id === item.id);
         if (mat) {
-          mat.qtd = Math.max(0, Number((mat.qtd - item.qtd).toFixed(2)));
+          Estoque.sincronizarVolumes(mat);
+          if (item.modoRetirada === "UNIDADES_SOLTAS" && mat.unidadesPorVolume > 1) {
+            let restante = item.qtd;
+            mat.volumes.sort((a, b) => a - b); // Consome primeiro os fardos abertos
+            for (let i = 0; i < mat.volumes.length && restante > 0; i++) {
+              const tirar = Math.min(mat.volumes[i], restante);
+              mat.volumes[i] -= tirar;
+              restante -= tirar;
+            }
+          } else {
+            mat.volumes.sort((a, b) => b - a); // Retira fardos fechados
+            mat.volumes.splice(0, item.qtd);
+          }
+          Estoque.sincronizarVolumes(mat);
           DB.save("materiais", mat);
         }
       });
 
       DB.save("historico", registroLote, () => {
         document.getElementById("modalGerarSaida").classList.remove("active");
-        Utils.toast(`Baixa registrada para ${setor}! Use a aba "Histórico de Saídas" quando quiser gerar o Word.`);
+        Utils.toast(`Baixa registrada para ${setor}!`);
         Estoque.render();
         Historico.render();
       });
@@ -1662,36 +1908,63 @@ const App = (() => {
     },
 
     // Apaga o registo do histórico e devolve (ou desconta) as quantidades no estoque do Firebase
+    // Apaga o registo do histórico e devolve (ou desconta) os fardos/unidades na lista volumes do Firebase
     excluirHistorico: async (id) => {
       const h = state.historico.find((x) => x.id === id);
       if (!h) return;
 
       const isSaida = h.tipo === "SAIDA";
       const textoConfirm = isSaida
-        ? "Deseja apagar esta SAÍDA do histórico? Os materiais voltarão automaticamente para o estoque!"
+        ? "Deseja apagar esta SAÍDA do histórico? Os materiais/unidades voltarão automaticamente para o estoque!"
         : "Deseja apagar esta ENTRADA do histórico? A quantidade será descontada do saldo em estoque.";
 
       if (confirm(textoConfirm)) {
         for (const it of (h.itens || [])) {
-          const qtdMov = parseFloat(it.qtd) || 0;
+          const qtdMov = Math.round(parseFloat(it.qtd) || 0);
           let mat = state.materiais.find(
             (m) => m.id === it.id || (m.nome || "").toLowerCase() === (it.nome || "").toLowerCase()
           );
 
           if (mat) {
-            const saldoAtual = parseFloat(mat.qtd) || 0;
-            // Se era SAÍDA, soma de volta ao estoque (+). Se era ENTRADA, retira do estoque (-).
-            mat.qtd = isSaida
-              ? Number((saldoAtual + qtdMov).toFixed(2))
-              : Math.max(0, Number((saldoAtual - qtdMov).toFixed(2)));
+            Estoque.sincronizarVolumes(mat);
+            const capMax = mat.unidadesPorVolume || 1;
+            const foiUnidadesSoltas = it.modoRetirada === "UNIDADES_SOLTAS" && capMax > 1;
 
-            // Se o material estava na lixeira e recebeu estoque de volta, restaura-o
-            if (isSaida && mat.deleted) {
-              mat.deleted = false;
+            if (isSaida) {
+              // DEVOLVER SAÍDA PARA O ESTOQUE
+              if (foiUnidadesSoltas) {
+                let devolver = qtdMov;
+                // Preenche primeiro algum fardo que esteja aberto/parcial
+                for (let i = 0; i < mat.volumes.length && devolver > 0; i++) {
+                  if (mat.volumes[i] < capMax) {
+                    const cabe = capMax - mat.volumes[i];
+                    const somar = Math.min(cabe, devolver);
+                    mat.volumes[i] += somar;
+                    devolver -= somar;
+                  }
+                }
+                // Se ainda sobrarem unidades devolvidas, recria novos fardos/caixas
+                while (devolver > 0) {
+                  const novoVol = Math.min(capMax, devolver);
+                  mat.volumes.push(novoVol);
+                  devolver -= novoVol;
+                }
+              } else {
+                // Devolve volumes (fardos/caixas) inteiros fechados
+                for (let i = 0; i < qtdMov; i++) {
+                  mat.volumes.push(capMax);
+                }
+              }
+              if (mat.deleted) mat.deleted = false;
+            } else {
+              // ESTORNAR ENTRADA (RETIRAR DO ESTOQUE)
+              mat.volumes.splice(0, Math.min(mat.volumes.length, qtdMov));
             }
+
+            Estoque.sincronizarVolumes(mat);
             await new Promise((res) => DB.save("materiais", mat, res));
           } else if (isSaida) {
-            // Caso o item tivesse sido removido de vez, recria-o na prateleira com o saldo devolvido
+            // Caso o material tivesse sido apagado, recria-o na prateleira
             const matRecriado = {
               id: it.id || "MAT_" + Date.now(),
               codigo: it.codigo || Estoque.gerarProximoCodigoLivre(),
@@ -1699,6 +1972,9 @@ const App = (() => {
               categoria: it.categoria || state.categorias[0] || "Escritório",
               qtd: qtdMov,
               unidade: it.unidade || "Unid.",
+              unidadesPorVolume: 1,
+              volumes: Array.from({ length: qtdMov }, () => 1),
+              totalUnidades: qtdMov,
               minimo: 5,
               local: "Almoxarifado Geral",
               deleted: false
@@ -1710,7 +1986,7 @@ const App = (() => {
         await new Promise((res) => DB.delete("historico", id, res));
         Utils.toast(
           isSaida
-            ? "Saída apagada! Os materiais voltaram para o estoque."
+            ? "Saída apagada! Os volumes/unidades voltaram para o estoque."
             : "Entrada apagada e saldo atualizado no estoque!"
         );
         Estoque.render();
@@ -2078,6 +2354,9 @@ const App = (() => {
     aplicarZoom: aplicarZoom,
     mudarFiltroGrafico: Estoque.mudarFiltroGrafico, // Ou Estoque.mudarFiltroGrafico dependendo de onde colocou
     atualizarGraficos: Estoque.atualizarGraficos,
+    abrirInspecaoVolumes: Estoque.abrirInspecaoVolumes,
+    retirarUnidadesDeVolumeEspecifico: Estoque.retirarUnidadesDeVolumeEspecifico,
+    alternarModoRetiradaIndividual: Estoque.alternarModoRetiradaIndividual,
   };
 })();
 
