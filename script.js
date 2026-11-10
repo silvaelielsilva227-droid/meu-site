@@ -766,7 +766,7 @@ const App = (() => {
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
               <span class="sku-badge">${m.unidade} #${String(index + 1).padStart(3, "0")}</span>
               <span style="font-size:11px; font-weight:800; color:${cor};">
-                ${isAberto ? "🔓 ABERTO / PARCIAL" : "📦 FECHADO (100%)"}
+                ${isAberto ? "🔓 ABERTO " : "📦 FECHADO 100%"}
               </span>
             </div>
             <div style="font-size:14px; font-weight:700; color:white; margin-bottom:6px;">
@@ -853,7 +853,7 @@ const App = (() => {
       document.getElementById("ind-resumo-box").innerHTML = `
         <span class="sku-badge">Nº ${m.codigo}</span> <strong style="color:white; font-size:15px; margin-left:6px;">${m.nome}</strong><br/>
         <span class="text-muted">Volumes na prateleira:</span> <strong style="color:var(--success)">${m.qtd} ${m.unidade}</strong>
-        ${m.unidadesPorVolume > 1 ? ` • <span class="text-muted">Total em Unidades:</span> <strong style="color:var(--info)">${m.totalUnidades} Unid.</strong> (${m.unidadesPorVolume} un./${m.unidade})` : ""}
+        ${m.unidadesPorVolume > 1 ? ` • <span class="text-muted">Total em Unidades:</span> <strong style="color:var(--info)">${m.totalUnidades} Unid.</strong> (${m.unidadesPorVolume} Und Em cada - ${m.unidade})` : ""}
       `;
 
       if (tipo === "SAIDA") {
@@ -1135,7 +1135,7 @@ const App = (() => {
               ${
                 m.unidadesPorVolume > 1
                   ? `<div style="font-size: 11.5px; color: var(--info); margin-top: 3px; font-weight: 600;">
-                       📦 ${m.unidadesPorVolume} un./${m.unidade} • Total: <strong>${m.totalUnidades} unid.</strong>
+                       📦 ${m.unidadesPorVolume} Und Em cada - ${m.unidade} • Total: <strong>${m.totalUnidades} unid.</strong>
                        ${abertos > 0 ? `<span style="color:var(--warning);">(${abertos} aberto)</span>` : ""}
                      </div>`
                   : ""
@@ -1466,7 +1466,7 @@ const App = (() => {
       const documento = document.getElementById("pedido-documento").value.trim() || "Requisição Interna";
 
       if (!setor) {
-        return Utils.toast("Selecione ou digite a Unidade Destino (Ex: CRAS, CREAS, Conselho Tutelar)!", "error");
+        return Utils.toast("Selecione ou digite a Unidade Destino!", "error");
       }
 
       const itensEscolhidos = [];
